@@ -4,8 +4,8 @@
   "description": "Aplikasi PWA pencatat keuangan pintar dengan OCR Scanner & MySQL",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#4f46e5",
+  "background_color": "#06110d",
+  "theme_color": "#10b981",
   "orientation": "portrait-primary",
   "icons": [
     {

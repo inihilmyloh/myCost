@@ -22,7 +22,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
   <!-- Core Styles -->
-  <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+  <link rel="stylesheet" href="{{ asset('css/style.css') }}?v=3.0">
 </head>
 <body>
 
@@ -427,10 +427,10 @@
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
   <!-- Application Scripts -->
-  <script src="{{ asset('js/db-local.js') }}"></script>
-  <script src="{{ asset('js/charts.js') }}"></script>
-  <script src="{{ asset('js/ocr.js') }}"></script>
-  <script src="{{ asset('js/app.js') }}"></script>
+  <script src="{{ asset('js/db-local.js') }}?v=3.0"></script>
+  <script src="{{ asset('js/charts.js') }}?v=3.0"></script>
+  <script src="{{ asset('js/ocr.js') }}?v=3.0"></script>
+  <script src="{{ asset('js/app.js') }}?v=3.0"></script>
 
 </body>
 </html>

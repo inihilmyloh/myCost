@@ -1,5 +1,5 @@
 // Service Worker for myCost PWA
-const CACHE_NAME = 'mycost-v1.0.0';
+const CACHE_NAME = 'mycost-v3.0.0';
 
 const ASSETS_TO_CACHE = [
   './',
