@@ -82,6 +82,10 @@ class MyCostApp {
       btn.classList.toggle('active', btn.dataset.tab === viewName);
     });
 
+    document.querySelectorAll('.bottom-nav .nav-item').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.tab === viewName);
+    });
+
     document.querySelectorAll('.view-section').forEach((sec) => {
       sec.classList.remove('active');
     });
@@ -576,18 +580,18 @@ class MyCostApp {
 
     if (summary && summaryBox) {
       summaryBox.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; padding: 14px 16px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-md);">
           <div>
-            <div style="font-size: 12px; color: var(--text-muted);">Total Anggaran Bulan Ini</div>
-            <div style="font-size: 18px; font-weight: 800; color: var(--primary-light);">Rp ${Number(summary.total_budget).toLocaleString('id-ID')}</div>
+            <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Total Anggaran</div>
+            <div style="font-size: 16px; font-weight: 800; color: var(--primary-light);">Rp ${Number(summary.total_budget).toLocaleString('id-ID')}</div>
           </div>
           <div>
-            <div style="font-size: 12px; color: var(--text-muted);">Total Terpakai</div>
-            <div style="font-size: 18px; font-weight: 800; color: ${summary.total_spent > summary.total_budget ? 'var(--expense)' : 'var(--text-primary)'};">Rp ${Number(summary.total_spent).toLocaleString('id-ID')} (${summary.overall_percentage}%)</div>
+            <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Total Terpakai</div>
+            <div style="font-size: 16px; font-weight: 800; color: ${summary.total_spent > summary.total_budget ? 'var(--expense)' : 'var(--text-primary)'};">Rp ${Number(summary.total_spent).toLocaleString('id-ID')} (${summary.overall_percentage}%)</div>
           </div>
           <div>
-            <div style="font-size: 12px; color: var(--text-muted);">Sisa Anggaran</div>
-            <div style="font-size: 18px; font-weight: 800; color: var(--income);">Rp ${Number(summary.total_remaining).toLocaleString('id-ID')}</div>
+            <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Sisa Anggaran</div>
+            <div style="font-size: 16px; font-weight: 800; color: var(--income);">Rp ${Number(summary.total_remaining).toLocaleString('id-ID')}</div>
           </div>
         </div>
       `;

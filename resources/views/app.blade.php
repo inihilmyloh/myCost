@@ -22,7 +22,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
   <!-- Core Styles -->
-  <link rel="stylesheet" href="{{ asset('css/style.css') }}?v=4.0">
+  <link rel="stylesheet" href="{{ asset('css/style.css') }}?v=5.0">
 </head>
 <body>
 
@@ -288,23 +288,23 @@
 
   <!-- Mobile Bottom Navigation Bar -->
   <nav class="bottom-nav">
-    <button class="nav-item active" onclick="app.switchView('dashboard')">
+    <button class="nav-item active" data-tab="dashboard" onclick="app.switchView('dashboard')">
       <i class="fa-solid fa-house"></i>
       <span>Beranda</span>
     </button>
-    <button class="nav-item" onclick="app.switchView('accounts')">
+    <button class="nav-item" data-tab="accounts" onclick="app.switchView('accounts')">
       <i class="fa-solid fa-wallet"></i>
       <span>Rekening</span>
     </button>
-    <button class="nav-item" onclick="app.switchView('budgets')">
+    <button class="nav-item" data-tab="budgets" onclick="app.switchView('budgets')">
       <i class="fa-solid fa-scale-balanced"></i>
       <span>Anggaran</span>
     </button>
-    <button class="nav-item" onclick="app.switchView('piggy')">
+    <button class="nav-item" data-tab="piggy" onclick="app.switchView('piggy')">
       <i class="fa-solid fa-piggy-bank"></i>
       <span>Celengan</span>
     </button>
-    <button id="navAuthBtn" class="nav-item">
+    <button id="navAuthBtn" class="nav-item" data-tab="auth" onclick="app.openAuthModal(app.currentUser ? 'profile' : 'login')">
       <i class="fa-solid fa-circle-user"></i>
       <span id="navAuthLabel">Akun</span>
     </button>
@@ -690,11 +690,14 @@
 
       <!-- Profile Logged In View -->
       <div id="profileView" style="display: none; text-align: center; padding: 10px 0;">
-        <div style="width: 70px; height: 70px; border-radius: 50%; background: var(--primary-gradient); display: flex; align-items: center; justify-content: center; font-size: 28px; color: #fff; margin: 0 auto 16px auto;">
+        <div style="width: 70px; height: 70px; border-radius: 50%; background: var(--primary-gradient); display: flex; align-items: center; justify-content: center; font-size: 28px; color: #fff; margin: 0 auto 14px auto; box-shadow: 0 4px 18px rgba(16, 185, 129, 0.4);">
           <i class="fa-solid fa-circle-user"></i>
         </div>
-        <h4 id="profileUserName" style="font-size: 18px; margin-bottom: 4px; font-weight: 800;">User</h4>
-        <p id="profileUserEmail" style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">email@example.com</p>
+        <h4 id="profileUserName" style="font-size: 19px; margin-bottom: 4px; font-weight: 800;">User</h4>
+        <p id="profileUserEmail" style="color: var(--text-muted); font-size: 13px; margin-bottom: 12px;">email@example.com</p>
+        <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 20px; background: rgba(16, 185, 129, 0.15); color: var(--primary-light); font-size: 11px; font-weight: 700; margin-bottom: 22px;">
+          <i class="fa-solid fa-shield-halved"></i> Akun Utama (Lokal / Self-Hosted)
+        </div>
         <button type="button" id="logoutBtn" class="btn-secondary btn-danger">
           <i class="fa-solid fa-right-from-bracket"></i> Keluar dari Akun (Logout)
         </button>
@@ -707,9 +710,9 @@
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
   <!-- Application Scripts -->
-  <script src="{{ asset('js/charts.js') }}?v=4.6"></script>
-  <script src="{{ asset('js/ocr.js') }}?v=4.6"></script>
-  <script src="{{ asset('js/app.js') }}?v=4.6"></script>
+  <script src="{{ asset('js/charts.js') }}?v=5.0"></script>
+  <script src="{{ asset('js/ocr.js') }}?v=5.0"></script>
+  <script src="{{ asset('js/app.js') }}?v=5.0"></script>
 
 </body>
 </html>
