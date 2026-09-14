@@ -13,6 +13,8 @@ class Transaction extends Model
 
     protected $fillable = [
         'user_id',
+        'account_id',
+        'destination_account_id',
         'type',
         'amount',
         'subtotal',
@@ -26,6 +28,8 @@ class Transaction extends Model
 
     protected $casts = [
         'user_id' => 'integer',
+        'account_id' => 'integer',
+        'destination_account_id' => 'integer',
         'amount' => 'float',
         'subtotal' => 'float',
         'discount' => 'float',
@@ -39,6 +43,18 @@ class Transaction extends Model
     public function items()
     {
         return $this->hasMany(TransactionItem::class, 'transaction_id');
+    }
+
+    // Relationship to Account
+    public function account()
+    {
+        return $this->belongsTo(Account::class, 'account_id');
+    }
+
+    // Relationship to Destination Account (for Transfers)
+    public function destinationAccount()
+    {
+        return $this->belongsTo(Account::class, 'destination_account_id');
     }
 
     // Relationship to User

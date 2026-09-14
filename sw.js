@@ -1,9 +1,8 @@
-// Service Worker for myCost PWA
-const CACHE_NAME = 'mycost-v3.0.0';
+// Service Worker for myCost PWA - Local Firefly III Mode
+const CACHE_NAME = 'mycost-v4.0.0-local';
 
 const ASSETS_TO_CACHE = [
   './',
-  './index.html',
   './css/style.css',
   './js/app.js',
   './js/db-local.js',
@@ -19,7 +18,7 @@ const ASSETS_TO_CACHE = [
   'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'
 ];
 
-// Install Event - Cache critical static assets
+// Install Event
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -31,7 +30,7 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Activate Event - Cleanup old caches
+// Activate Event - Purge all old versions
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
@@ -47,40 +46,12 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch Event - Network first for API, Cache first for assets
+// Fetch Event - Network First everywhere to guarantee instant updates in local development
 self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
-
-  // If request is to our API
-  if (url.pathname.includes('/api/')) {
-    event.respondWith(
-      fetch(event.request)
-        .catch(() => {
-          // If offline and request is GET, try to return mock or cached data if any
-          return caches.match(event.request).then((cachedResponse) => {
-            if (cachedResponse) {
-              return cachedResponse;
-            }
-            return new Response(
-              JSON.stringify({
-                status: 'offline',
-                message: 'Perangkat sedang offline. Menggunakan data lokal.',
-                data: []
-              }),
-              {
-                headers: { 'Content-Type': 'application/json' }
-              }
-            );
-          });
-        })
-    );
-    return;
-  }
-
-  // For static assets: Stale-While-Revalidate strategy
+  // Always fetch from network first
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      const fetchPromise = fetch(event.request).then((networkResponse) => {
+    fetch(event.request)
+      .then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
@@ -88,11 +59,9 @@ self.addEventListener('fetch', (event) => {
           });
         }
         return networkResponse;
-      }).catch(() => {
-        // Network failed, nothing extra to do since cachedResponse is returned below
-      });
-
-      return cachedResponse || fetchPromise;
-    })
+      })
+      .catch(() => {
+        return caches.match(event.request);
+      })
   );
 });

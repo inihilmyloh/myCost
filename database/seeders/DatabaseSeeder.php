@@ -2,9 +2,14 @@
 
 namespace Database\Seeders;
 
+use App\Models\Account;
+use App\Models\Budget;
+use App\Models\PiggyBank;
 use App\Models\Transaction;
+use App\Models\TransactionItem;
+use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -13,66 +18,60 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $today = Carbon::today();
-
-        Transaction::firstOrCreate(
-            ['notes' => 'Gaji bulanan', 'transaction_date' => $today->toDateString()],
+        // 1. Create or Update Main User
+        $user = User::updateOrCreate(
+            ['id' => 1],
             [
-                'type' => 'pemasukan',
-                'amount' => 5000000.00,
-                'category' => 'Gaji',
-                'transaction_date' => $today->toDateString(),
-                'notes' => 'Gaji bulanan',
-                'receipt_image_url' => null
+                'name' => 'Izlude',
+                'email' => 'izlude@mycost.local',
+                'password' => Hash::make('password123'),
             ]
         );
 
-        Transaction::firstOrCreate(
-            ['notes' => 'Makan siang ayam geprek', 'transaction_date' => $today->toDateString()],
-            [
-                'type' => 'pengeluaran',
-                'amount' => 45000.00,
-                'category' => 'Makanan & Minuman',
-                'transaction_date' => $today->toDateString(),
-                'notes' => 'Makan siang ayam geprek',
-                'receipt_image_url' => null
-            ]
-        );
+        // 2. Clear old test transactions & items for a fresh start
+        \Illuminate\Support\Facades\Schema::disableForeignKeyConstraints();
+        TransactionItem::truncate();
+        Transaction::truncate();
+        Account::truncate();
+        Budget::truncate();
+        PiggyBank::truncate();
+        \Illuminate\Support\Facades\Schema::enableForeignKeyConstraints();
 
-        Transaction::firstOrCreate(
-            ['notes' => 'Belanja bulanan minimarket', 'transaction_date' => $today->copy()->subDays(1)->toDateString()],
-            [
-                'type' => 'pengeluaran',
-                'amount' => 150000.00,
-                'category' => 'Belanja',
-                'transaction_date' => $today->copy()->subDays(1)->toDateString(),
-                'notes' => 'Belanja bulanan minimarket',
-                'receipt_image_url' => null
-            ]
-        );
+        Account::create([
+            'user_id' => $user->id,
+            'name' => 'Bank BCA',
+            'type' => 'bank',
+            'balance' => 0.00,
+            'account_number' => '1234567890',
+            'icon' => 'fa-building-columns',
+            'color' => '#10b981',
+            'is_active' => true,
+        ]);
 
-        Transaction::firstOrCreate(
-            ['notes' => 'Bensin motor', 'transaction_date' => $today->copy()->subDays(2)->toDateString()],
-            [
-                'type' => 'pengeluaran',
-                'amount' => 50000.00,
-                'category' => 'Transportasi',
-                'transaction_date' => $today->copy()->subDays(2)->toDateString(),
-                'notes' => 'Bensin motor',
-                'receipt_image_url' => null
-            ]
-        );
+        Account::create([
+            'user_id' => $user->id,
+            'name' => 'Kas Tunai / Dompet',
+            'type' => 'cash',
+            'balance' => 0.00,
+            'account_number' => null,
+            'icon' => 'fa-wallet',
+            'color' => '#059669',
+            'is_active' => true,
+        ]);
 
-        Transaction::firstOrCreate(
-            ['notes' => 'Project desain logo freelance', 'transaction_date' => $today->copy()->subDays(3)->toDateString()],
-            [
-                'type' => 'pemasukan',
-                'amount' => 500000.00,
-                'category' => 'Freelance',
-                'transaction_date' => $today->copy()->subDays(3)->toDateString(),
-                'notes' => 'Project desain logo freelance',
-                'receipt_image_url' => null
-            ]
-        );
+        Account::create([
+            'user_id' => $user->id,
+            'name' => 'GoPay / E-Wallet',
+            'type' => 'ewallet',
+            'balance' => 0.00,
+            'account_number' => '08123456789',
+            'icon' => 'fa-mobile-screen',
+            'color' => '#34d399',
+            'is_active' => true,
+        ]);
+
+        // 4. Reset Budgets & Piggy Banks to clean slate
+        Budget::truncate();
+        PiggyBank::truncate();
     }
 }

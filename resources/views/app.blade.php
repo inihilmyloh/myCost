@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="csrf-token" content="{{ csrf_token() }}">
-  <title>myCost - Catatan Keuangan Pintar & Scanner OCR</title>
+  <title>myCost - Pengelola Keuangan Pribadi & Scanner OCR</title>
 
   <!-- PWA Settings -->
   <link rel="manifest" href="{{ asset('manifest.json') }}">
@@ -22,7 +22,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
   <!-- Core Styles -->
-  <link rel="stylesheet" href="{{ asset('css/style.css') }}?v=3.0">
+  <link rel="stylesheet" href="{{ asset('css/style.css') }}?v=4.0">
 </head>
 <body>
 
@@ -44,18 +44,13 @@
         <!-- User Profile Pill -->
         <div id="userProfilePill" class="user-pill" title="Akun Pengguna">
           <div id="userAvatar" class="user-avatar"><i class="fa-solid fa-user"></i></div>
-          <span id="userNameLabel" class="user-name-label">Login</span>
+          <span id="userNameLabel" class="user-name-label">Masuk / Daftar</span>
         </div>
 
         <!-- Online/Offline Badge -->
         <div id="onlineStatusBadge" class="status-badge" title="Status Jaringan">
           <span class="status-dot"></span> Online
         </div>
-
-        <!-- DB Status Checker -->
-        <button id="dbStatusBtn" class="icon-btn" title="Cek Database MySQL">
-          <i class="fa-solid fa-database"></i>
-        </button>
 
         <!-- CSV Export -->
         <button id="exportDataBtn" class="icon-btn" title="Ekspor Data ke CSV">
@@ -72,123 +67,215 @@
     <!-- Guest Alert Banner (Visible when not logged in) -->
     <div id="guestBanner" class="guest-banner" style="display: none;">
       <i class="fa-solid fa-user-lock"></i>
-      <span>Anda belum login. <strong>Klik di sini untuk Masuk atau Buat Akun</strong> agar data Anda tersimpan aman.</span>
+      <span>Anda belum login. <strong>Klik di sini untuk Masuk atau Buat Akun</strong> agar data keuangan Anda tersimpan aman.</span>
       <i class="fa-solid fa-chevron-right"></i>
     </div>
 
-    <!-- Main Balance Hero Widget -->
-    <section class="balance-hero">
-      <div class="hero-label">Total Saldo Bersih</div>
-      <div id="totalBalanceVal" class="hero-amount">Rp 0</div>
-
-      <div class="hero-stats-grid">
-        <div class="hero-stat-card">
-          <div class="stat-icon-wrap" style="color: #34d399;">
-            <i class="fa-solid fa-arrow-down-left"></i>
-          </div>
-          <div class="stat-info">
-            <div class="stat-lbl">Pemasukan Bulan Ini</div>
-            <div id="monthIncomeVal" class="stat-val">Rp 0</div>
-          </div>
-        </div>
-
-        <div class="hero-stat-card">
-          <div class="stat-icon-wrap" style="color: #ef4444;">
-            <i class="fa-solid fa-arrow-up-right"></i>
-          </div>
-          <div class="stat-info">
-            <div class="stat-lbl">Pengeluaran Bulan Ini</div>
-            <div id="monthExpenseVal" class="stat-val">Rp 0</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Quick Action Bar -->
-    <section class="quick-actions">
-      <div class="action-card-btn" onclick="app.openTransactionModal({type:'pengeluaran'})">
-        <i class="fa-solid fa-circle-minus" style="color: var(--expense);"></i>
-        <span>Catat Keluar</span>
-      </div>
-      <div class="action-card-btn scan" onclick="app.openScannerModal()">
-        <i class="fa-solid fa-camera-retro"></i>
-        <span>Scan Nota</span>
-      </div>
-      <div class="action-card-btn" onclick="app.openTransactionModal({type:'pemasukan'})">
-        <i class="fa-solid fa-circle-plus" style="color: var(--income);"></i>
-        <span>Catat Masuk</span>
-      </div>
-    </section>
-
-    <!-- Month Navigation Bar -->
-    <div class="month-filter-bar">
-      <button id="prevMonthBtn" class="month-nav-btn" title="Bulan Sebelumnya">
-        <i class="fa-solid fa-chevron-left"></i>
+    <!-- Main Feature Navigation Tabs (Firefly III Style) -->
+    <nav class="main-tabs-bar">
+      <button class="tab-nav-btn active" data-tab="dashboard" onclick="app.switchView('dashboard')">
+        <i class="fa-solid fa-chart-line"></i> Dashboard
       </button>
-      <div id="currentMonthLabel" class="month-display">
-        <i class="fa-regular fa-calendar"></i> Memuat...
-      </div>
-      <button id="nextMonthBtn" class="month-nav-btn" title="Bulan Selanjutnya">
-        <i class="fa-solid fa-chevron-right"></i>
+      <button class="tab-nav-btn" data-tab="accounts" onclick="app.switchView('accounts')">
+        <i class="fa-solid fa-wallet"></i> Rekening & Dompet
       </button>
-    </div>
+      <button class="tab-nav-btn" data-tab="budgets" onclick="app.switchView('budgets')">
+        <i class="fa-solid fa-scale-balanced"></i> Anggaran
+      </button>
+      <button class="tab-nav-btn" data-tab="piggy" onclick="app.switchView('piggy')">
+        <i class="fa-solid fa-piggy-bank"></i> Celengan Impian
+      </button>
+    </nav>
 
-    <!-- Main Dashboard Grid (Analytics & Transactions) -->
-    <main class="dashboard-grid">
+    <!-- ============================================== -->
+    <!-- VIEW 1: DASHBOARD -->
+    <!-- ============================================== -->
+    <section id="viewDashboard" class="view-section active">
 
-      <!-- Left Column: Visual Analytics -->
-      <section class="analytics-col">
-        <div class="glass-card" style="margin-bottom: 24px;">
-          <div class="card-header">
-            <h2 class="card-title"><i class="fa-solid fa-chart-pie"></i> Pengeluaran per Kategori</h2>
-          </div>
-          <div class="chart-container">
-            <canvas id="categoryChart"></canvas>
-          </div>
-        </div>
+      <!-- Main Balance & Net Worth Hero Widget -->
+      <section class="balance-hero">
+        <div class="hero-label">Total Kekayaan Bersih (Net Worth)</div>
+        <div id="totalBalanceVal" class="hero-amount">Rp 0</div>
 
-        <div class="glass-card">
-          <div class="card-header">
-            <h2 class="card-title"><i class="fa-solid fa-chart-simple"></i> Tren Arus Kas (6 Bulan)</h2>
-          </div>
-          <div class="chart-container">
-            <canvas id="trendChart"></canvas>
-          </div>
-        </div>
-      </section>
-
-      <!-- Right Column: Transactions History & Filters -->
-      <section class="transactions-col">
-        <div class="glass-card">
-          <div class="card-header">
-            <h2 class="card-title"><i class="fa-solid fa-clock-rotate-left"></i> Riwayat Transaksi</h2>
-          </div>
-
-          <!-- Search & Filter Controls -->
-          <div class="filter-container">
-            <div class="search-input-wrap">
-              <i class="fa-solid fa-magnifying-glass"></i>
-              <input type="text" id="searchInput" class="search-input" placeholder="Cari transaksi atau kategori...">
+        <div class="hero-stats-grid">
+          <div class="hero-stat-card">
+            <div class="stat-icon-wrap" style="color: #34d399;">
+              <i class="fa-solid fa-arrow-down"></i>
             </div>
-
-            <div class="filter-chips">
-              <div class="chip active" data-filter="all">Semua</div>
-              <div class="chip" data-filter="pengeluaran">Pengeluaran</div>
-              <div class="chip" data-filter="pemasukan">Pemasukan</div>
+            <div class="stat-info">
+              <div class="stat-lbl">Pemasukan Bulan Ini</div>
+              <div id="monthIncomeVal" class="stat-val">Rp 0</div>
             </div>
           </div>
 
-          <!-- Dynamic Transactions List -->
-          <div id="transactionsList" class="transaction-list">
-            <div class="empty-state">
-              <i class="fa-solid fa-circle-notch fa-spin"></i>
-              <p>Memuat transaksi...</p>
+          <div class="hero-stat-card">
+            <div class="stat-icon-wrap" style="color: #ef4444;">
+              <i class="fa-solid fa-arrow-up"></i>
+            </div>
+            <div class="stat-info">
+              <div class="stat-lbl">Pengeluaran Bulan Ini</div>
+              <div id="monthExpenseVal" class="stat-val">Rp 0</div>
             </div>
           </div>
         </div>
       </section>
 
-    </main>
+      <!-- Quick Action Bar -->
+      <section class="quick-actions">
+        <div class="action-card-btn" onclick="app.openTransactionModal({type:'pengeluaran'})">
+          <i class="fa-solid fa-circle-minus" style="color: var(--expense);"></i>
+          <span>Catat Keluar</span>
+        </div>
+        <div class="action-card-btn scan" onclick="app.openScannerModal()">
+          <i class="fa-solid fa-camera-retro"></i>
+          <span>Scan Nota</span>
+        </div>
+        <div class="action-card-btn" onclick="app.openTransactionModal({type:'pemasukan'})">
+          <i class="fa-solid fa-circle-plus" style="color: var(--income);"></i>
+          <span>Catat Masuk</span>
+        </div>
+        <div class="action-card-btn" onclick="app.openTransactionModal({type:'transfer'})">
+          <i class="fa-solid fa-money-bill-transfer" style="color: var(--primary-light);"></i>
+          <span>Transfer</span>
+        </div>
+      </section>
+
+      <!-- Month Navigation Bar -->
+      <div class="month-filter-bar">
+        <button id="prevMonthBtn" class="month-nav-btn" title="Bulan Sebelumnya">
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <div id="currentMonthLabel" class="month-display">
+          <i class="fa-regular fa-calendar"></i> Memuat...
+        </div>
+        <button id="nextMonthBtn" class="month-nav-btn" title="Bulan Selanjutnya">
+          <i class="fa-solid fa-chevron-right"></i>
+        </button>
+      </div>
+
+      <!-- Main Dashboard Grid (Analytics & Transactions) -->
+      <main class="dashboard-grid">
+
+        <!-- Left Column: Visual Analytics -->
+        <section class="analytics-col">
+          <div class="glass-card" style="margin-bottom: 24px;">
+            <div class="card-header">
+              <h2 class="card-title"><i class="fa-solid fa-chart-pie"></i> Pengeluaran per Kategori</h2>
+            </div>
+            <div class="chart-container">
+              <canvas id="categoryChart"></canvas>
+            </div>
+          </div>
+
+          <div class="glass-card">
+            <div class="card-header">
+              <h2 class="card-title"><i class="fa-solid fa-chart-simple"></i> Tren Arus Kas (6 Bulan)</h2>
+            </div>
+            <div class="chart-container">
+              <canvas id="trendChart"></canvas>
+            </div>
+          </div>
+        </section>
+
+        <!-- Right Column: Transactions History & Filters -->
+        <section class="transactions-col">
+          <div class="glass-card">
+            <div class="card-header">
+              <h2 class="card-title"><i class="fa-solid fa-clock-rotate-left"></i> Riwayat Transaksi</h2>
+            </div>
+
+            <!-- Search & Filter Controls -->
+            <div class="filter-container">
+              <div class="search-input-wrap">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="searchInput" class="search-input" placeholder="Cari transaksi, toko, atau kategori...">
+              </div>
+
+              <div class="filter-chips">
+                <div class="chip active" data-filter="all">Semua</div>
+                <div class="chip" data-filter="pengeluaran">Pengeluaran</div>
+                <div class="chip" data-filter="pemasukan">Pemasukan</div>
+                <div class="chip" data-filter="transfer">Transfer</div>
+              </div>
+            </div>
+
+            <!-- Dynamic Transactions List -->
+            <div id="transactionsList" class="transaction-list">
+              <div class="empty-state">
+                <i class="fa-solid fa-circle-notch fa-spin"></i>
+                <p>Memuat transaksi...</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+    </section>
+
+    <!-- ============================================== -->
+    <!-- VIEW 2: REKENING & DOMPET (ACCOUNTS) -->
+    <!-- ============================================== -->
+    <section id="viewAccounts" class="view-section">
+      <div class="glass-card">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title"><i class="fa-solid fa-wallet"></i> Daftar Rekening & Dompet</h2>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Kelola kas tunai, rekening bank, e-wallet, dan pos investasi Anda ala Firefly III.</p>
+          </div>
+          <button type="button" class="btn-primary" style="width: auto; padding: 10px 18px; font-size: 13px;" onclick="app.openAccountModal()">
+            <i class="fa-solid fa-plus"></i> Tambah Rekening
+          </button>
+        </div>
+
+        <div id="accountsListContainer" class="accounts-grid">
+          <!-- Rendered via JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- VIEW 3: ANGGARAN BULANAN (BUDGETS) -->
+    <!-- ============================================== -->
+    <section id="viewBudgets" class="view-section">
+      <div class="glass-card">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title"><i class="fa-solid fa-scale-balanced"></i> Anggaran Bulanan per Kategori</h2>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Tetapkan limit pengeluaran bulanan agar keuangan tetap terkendali.</p>
+          </div>
+          <button type="button" class="btn-primary" style="width: auto; padding: 10px 18px; font-size: 13px;" onclick="app.openBudgetModal()">
+            <i class="fa-solid fa-plus"></i> Pasang Anggaran
+          </button>
+        </div>
+
+        <div id="budgetsSummaryBox" style="margin-bottom: 20px;"></div>
+        <div id="budgetsListContainer" class="budget-grid">
+          <!-- Rendered via JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- VIEW 4: CELENGAN IMPIAN (PIGGY BANKS) -->
+    <!-- ============================================== -->
+    <section id="viewPiggy" class="view-section">
+      <div class="glass-card">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title"><i class="fa-solid fa-piggy-bank"></i> Celengan & Target Tabungan</h2>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Wujudkan barang impian atau dana darurat dengan menabung teratur.</p>
+          </div>
+          <button type="button" class="btn-primary" style="width: auto; padding: 10px 18px; font-size: 13px;" onclick="app.openPiggyModal()">
+            <i class="fa-solid fa-plus"></i> Buat Target Celengan
+          </button>
+        </div>
+
+        <div id="piggyListContainer" class="piggy-grid">
+          <!-- Rendered via JS -->
+        </div>
+      </div>
+    </section>
 
   </div>
 
@@ -201,17 +288,21 @@
 
   <!-- Mobile Bottom Navigation Bar -->
   <nav class="bottom-nav">
-    <button class="nav-item active" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+    <button class="nav-item active" onclick="app.switchView('dashboard')">
       <i class="fa-solid fa-house"></i>
       <span>Beranda</span>
     </button>
-    <button id="navScanBtn" class="nav-item">
-      <i class="fa-solid fa-camera"></i>
-      <span>Scan Nota</span>
+    <button class="nav-item" onclick="app.switchView('accounts')">
+      <i class="fa-solid fa-wallet"></i>
+      <span>Rekening</span>
     </button>
-    <button id="navAddBtn" class="nav-item">
-      <i class="fa-solid fa-circle-plus"></i>
-      <span>Tambah</span>
+    <button class="nav-item" onclick="app.switchView('budgets')">
+      <i class="fa-solid fa-scale-balanced"></i>
+      <span>Anggaran</span>
+    </button>
+    <button class="nav-item" onclick="app.switchView('piggy')">
+      <i class="fa-solid fa-piggy-bank"></i>
+      <span>Celengan</span>
     </button>
     <button id="navAuthBtn" class="nav-item">
       <i class="fa-solid fa-circle-user"></i>
@@ -223,7 +314,7 @@
   <!-- MODALS -->
   <!-- ============================================== -->
 
-  <!-- Modal 1: Add / Edit Transaction -->
+  <!-- Modal 1: Add / Edit Transaction (With Transfer & Account support) -->
   <div id="transactionModal" class="modal-overlay">
     <div class="modal-content">
       <div class="modal-header">
@@ -235,14 +326,33 @@
         <!-- Type Switcher -->
         <div class="form-group">
           <label class="form-label">Tipe Transaksi</label>
-          <div class="type-toggle-group">
+          <div class="type-toggle-group" style="grid-template-columns: 1fr 1fr 1fr;">
             <button type="button" id="btnTypeExpense" class="type-toggle-btn active expense">
-              <i class="fa-solid fa-arrow-up-right"></i> Pengeluaran
+              <i class="fa-solid fa-arrow-up"></i> Keluar
             </button>
             <button type="button" id="btnTypeIncome" class="type-toggle-btn">
-              <i class="fa-solid fa-arrow-down-left"></i> Pemasukan
+              <i class="fa-solid fa-arrow-down"></i> Masuk
+            </button>
+            <button type="button" id="btnTypeTransfer" class="type-toggle-btn">
+              <i class="fa-solid fa-arrow-right-arrow-left"></i> Transfer
             </button>
           </div>
+        </div>
+
+        <!-- Account Picker -->
+        <div class="form-group">
+          <label id="lblAccountSource" class="form-label">Rekening / Dompet</label>
+          <select id="transAccountSelect" class="form-control" required>
+            <!-- Rendered dynamically -->
+          </select>
+        </div>
+
+        <!-- Destination Account (For Transfer) -->
+        <div id="destAccountGroup" class="form-group" style="display: none;">
+          <label class="form-label">Ke Rekening / Dompet Tujuan</label>
+          <select id="transDestAccountSelect" class="form-control">
+            <!-- Rendered dynamically -->
+          </select>
         </div>
 
         <!-- Detected OCR Candidate Numbers (if any) -->
@@ -253,15 +363,15 @@
 
         <!-- Amount -->
         <div class="form-group">
-          <label class="form-label">Total Transaksi (Rp)</label>
+          <label class="form-label">Total Nominal (Rp)</label>
           <div class="input-icon-wrap">
             <span class="input-prefix">Rp</span>
             <input type="number" id="transAmount" class="form-control" placeholder="0" required min="1" step="any">
           </div>
         </div>
 
-        <!-- Itemized Receipt Breakdown Table -->
-        <div class="items-section">
+        <!-- Itemized Receipt Breakdown Table (Hidden on transfer) -->
+        <div id="itemizedSection" class="items-section">
           <div class="items-header">
             <div class="items-title">
               <i class="fa-solid fa-list-check"></i> Rincian Barang / Struk
@@ -300,8 +410,8 @@
           </div>
         </div>
 
-        <!-- Category Picker -->
-        <div class="form-group">
+        <!-- Category Picker (Hidden on transfer) -->
+        <div id="categoryGroup" class="form-group">
           <label class="form-label">Kategori</label>
           <div id="categoryGrid" class="category-grid"></div>
         </div>
@@ -314,8 +424,8 @@
 
         <!-- Notes -->
         <div class="form-group">
-          <label class="form-label">Catatan / Nama Toko</label>
-          <input type="text" id="transNotes" class="form-control" placeholder="Contoh: Belanja Indomaret">
+          <label class="form-label">Catatan / Keterangan</label>
+          <input type="text" id="transNotes" class="form-control" placeholder="Contoh: Belanja Bulanan / Transfer Uang Jajan">
         </div>
 
         <!-- Form Action Buttons -->
@@ -331,12 +441,172 @@
     </div>
   </div>
 
-  <!-- Modal 2: Live Camera & OCR Receipt Scanner -->
+  <!-- Modal 2: Add / Edit Account -->
+  <div id="accountModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="accountModalTitle" class="modal-title">Tambah Rekening / Dompet</h3>
+        <button class="close-btn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="accountForm">
+        <div class="form-group">
+          <label class="form-label">Nama Rekening / Dompet</label>
+          <input type="text" id="accName" class="form-control" placeholder="Contoh: Bank BCA / Dompet Saku" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Jenis Akun</label>
+          <select id="accType" class="form-control" required>
+            <option value="cash">Kas Tunai / Dompet</option>
+            <option value="bank">Rekening Bank</option>
+            <option value="ewallet">E-Wallet (GoPay/OVO/ShopeePay/DANA)</option>
+            <option value="investment">Investasi / Reksa Dana / Saham</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Saldo Awal (Rp)</label>
+          <div class="input-icon-wrap">
+            <span class="input-prefix">Rp</span>
+            <input type="number" id="accBalance" class="form-control" placeholder="0" required step="any">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Nomor Rekening / No. HP (Opsional)</label>
+          <input type="text" id="accNumber" class="form-control" placeholder="123-456-7890">
+        </div>
+
+        <button type="submit" class="btn-primary" style="margin-top: 16px;">
+          <i class="fa-solid fa-check"></i> Simpan Rekening
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 3: Add / Edit Budget -->
+  <div id="budgetModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Pasang Batas Anggaran</h3>
+        <button class="close-btn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="budgetForm">
+        <div class="form-group">
+          <label class="form-label">Kategori Pengeluaran</label>
+          <select id="budgetCategorySelect" class="form-control" required></select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Batas Anggaran per Bulan (Rp)</label>
+          <div class="input-icon-wrap">
+            <span class="input-prefix">Rp</span>
+            <input type="number" id="budgetLimit" class="form-control" placeholder="1000000" required min="1000" step="any">
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary" style="margin-top: 16px;">
+          <i class="fa-solid fa-check"></i> Simpan Anggaran
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 4: Add / Edit Piggy Bank -->
+  <div id="piggyModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="piggyModalTitle" class="modal-title">Target Celengan Impian</h3>
+        <button class="close-btn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="piggyForm">
+        <div class="form-group">
+          <label class="form-label">Nama Target Tabungan</label>
+          <input type="text" id="piggyName" class="form-control" placeholder="Contoh: Beli Laptop Baru / Dana Darurat" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Target Nominal yang Ingin Dicapai (Rp)</label>
+          <div class="input-icon-wrap">
+            <span class="input-prefix">Rp</span>
+            <input type="number" id="piggyTarget" class="form-control" placeholder="10000000" required min="1000" step="any">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Dana Terkumpul Saat Ini (Rp)</label>
+          <div class="input-icon-wrap">
+            <span class="input-prefix">Rp</span>
+            <input type="number" id="piggyCurrent" class="form-control" placeholder="0" min="0" step="any">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Target Tanggal Tercapai (Opsional)</label>
+          <input type="date" id="piggyDate" class="form-control">
+        </div>
+
+        <button type="submit" class="btn-primary" style="margin-top: 16px;">
+          <i class="fa-solid fa-piggy-bank"></i> Simpan Celengan
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 5: Quick Adjust Piggy Bank (Nabung / Tarik) -->
+  <div id="adjustPiggyModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="adjustPiggyTitle" class="modal-title">Nabung ke Celengan</h3>
+        <button class="close-btn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="adjustPiggyForm">
+        <input type="hidden" id="adjustPiggyId">
+        <div class="form-group">
+          <label class="form-label">Nominal (Rp)</label>
+          <div class="input-icon-wrap">
+            <span class="input-prefix">Rp</span>
+            <input type="number" id="adjustPiggyAmount" class="form-control" placeholder="50000" required min="1" step="any">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Aksi</label>
+          <div class="type-toggle-group">
+            <button type="button" id="btnAdjustDeposit" class="type-toggle-btn active income">
+              <i class="fa-solid fa-plus"></i> Tambah Tabungan
+            </button>
+            <button type="button" id="btnAdjustWithdraw" class="type-toggle-btn">
+              <i class="fa-solid fa-minus"></i> Tarik Tabungan
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary" style="margin-top: 16px;">
+          <i class="fa-solid fa-check"></i> Proses Tabungan
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 6: Live Camera & OCR Receipt Scanner -->
   <div id="scannerModal" class="modal-overlay">
     <div class="modal-content">
       <div class="modal-header">
         <h3 class="modal-title"><i class="fa-solid fa-receipt"></i> Pemindai Nota Pintar (OCR)</h3>
         <button class="close-btn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <!-- Camera Selector (For laptop with IR vs RGB webcam) -->
+      <div class="form-group" style="margin-bottom: 12px;">
+        <label class="form-label" style="font-size: 12px;"><i class="fa-solid fa-video"></i> Sumber Kamera:</label>
+        <select id="cameraSourceSelect" class="form-control" style="font-size: 13px;" onchange="receiptScanner.switchCamera('cameraVideo', this.value)">
+          <option value="">Pilih Kamera...</option>
+        </select>
       </div>
 
       <!-- Viewfinder -->
@@ -370,20 +640,7 @@
     </div>
   </div>
 
-  <!-- Modal 3: MySQL Database Status -->
-  <div id="dbStatusModal" class="modal-overlay">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3 class="modal-title"><i class="fa-solid fa-server"></i> Status Server & Database</h3>
-        <button class="close-btn"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-      <div id="dbStatusContent" style="padding: 10px 0;">
-        <p>Memeriksa koneksi database MySQL...</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal 4: Authentication (Login / Register) -->
+  <!-- Modal 7: Authentication (Login / Register / Profile) -->
   <div id="authModal" class="modal-overlay">
     <div class="modal-content">
       <div class="modal-header">
@@ -450,10 +707,9 @@
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
   <!-- Application Scripts -->
-  <script src="{{ asset('js/db-local.js') }}?v=3.0"></script>
-  <script src="{{ asset('js/charts.js') }}?v=3.0"></script>
-  <script src="{{ asset('js/ocr.js') }}?v=3.0"></script>
-  <script src="{{ asset('js/app.js') }}?v=3.0"></script>
+  <script src="{{ asset('js/charts.js') }}?v=4.6"></script>
+  <script src="{{ asset('js/ocr.js') }}?v=4.6"></script>
+  <script src="{{ asset('js/app.js') }}?v=4.6"></script>
 
 </body>
 </html>

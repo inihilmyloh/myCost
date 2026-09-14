@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Account;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -12,16 +14,61 @@ class TransactionController extends Controller
 {
     private function getUserId(Request $request)
     {
-        return $request->header('X-User-Id') ?: (Auth::id() ?: 1);
+        $headerId = $request->header('X-User-Id');
+        if ($headerId && User::where('id', $headerId)->exists()) {
+            return (int)$headerId;
+        }
+        if (Auth::check()) {
+            return Auth::id();
+        }
+        return null;
     }
 
     /**
-     * Display a listing of transactions with filtering and items.
+     * Helper to adjust account balances based on transaction type.
+     */
+    private function applyAccountBalance(Transaction $trans, $isRevert = false)
+    {
+        $multiplier = $isRevert ? -1 : 1;
+        $amount = (float)$trans->amount * $multiplier;
+
+        if ($trans->type === 'pemasukan' && $trans->account_id) {
+            $account = Account::find($trans->account_id);
+            if ($account) {
+                $account->balance += $amount;
+                $account->save();
+            }
+        } elseif ($trans->type === 'pengeluaran' && $trans->account_id) {
+            $account = Account::find($trans->account_id);
+            if ($account) {
+                $account->balance -= $amount;
+                $account->save();
+            }
+        } elseif ($trans->type === 'transfer') {
+            if ($trans->account_id) {
+                $src = Account::find($trans->account_id);
+                if ($src) {
+                    $src->balance -= $amount;
+                    $src->save();
+                }
+            }
+            if ($trans->destination_account_id) {
+                $dst = Account::find($trans->destination_account_id);
+                if ($dst) {
+                    $dst->balance += $amount;
+                    $dst->save();
+                }
+            }
+        }
+    }
+
+    /**
+     * Display a listing of transactions with filtering, items, and accounts.
      */
     public function index(Request $request)
     {
         $userId = $this->getUserId($request);
-        $query = Transaction::with('items')->forUser($userId);
+        $query = Transaction::with(['items', 'account', 'destinationAccount'])->forUser($userId);
 
         // Filter by ID
         if ($request->filled('id')) {
@@ -34,6 +81,13 @@ class TransactionController extends Controller
 
         if ($request->filled('type')) {
             $query->type($request->type);
+        }
+
+        if ($request->filled('account_id')) {
+            $accId = $request->account_id;
+            $query->where(function ($q) use ($accId) {
+                $q->where('account_id', $accId)->orWhere('destination_account_id', $accId);
+            });
         }
 
         if ($request->filled('category')) {
@@ -72,59 +126,18 @@ class TransactionController extends Controller
     }
 
     /**
-     * Store a newly created transaction with line items.
+     * Store a newly created transaction with line items & account balance mutation.
      */
     public function store(Request $request)
     {
         $userId = $this->getUserId($request);
 
-        // Bulk Sync Mode
-        if ($request->has('sync') && is_array($request->items)) {
-            $synced = 0;
-            foreach ($request->items as $item) {
-                if (!empty($item['type']) && !empty($item['amount']) && !empty($item['transaction_date'])) {
-                    $trans = Transaction::create([
-                        'user_id' => $userId,
-                        'type' => $item['type'] === 'pemasukan' ? 'pemasukan' : 'pengeluaran',
-                        'amount' => (float)$item['amount'],
-                        'subtotal' => (float)($item['subtotal'] ?? $item['amount']),
-                        'discount' => (float)($item['discount'] ?? 0),
-                        'tax' => (float)($item['tax'] ?? 0),
-                        'category' => !empty($item['category']) ? trim($item['category']) : 'Lainnya',
-                        'transaction_date' => $item['transaction_date'],
-                        'notes' => !empty($item['notes']) ? trim($item['notes']) : null,
-                        'receipt_image_url' => !empty($item['receipt_image_url']) ? trim($item['receipt_image_url']) : null,
-                    ]);
-
-                    if (!empty($item['items']) && is_array($item['items'])) {
-                        foreach ($item['items'] as $it) {
-                            if (!empty($it['item_name'])) {
-                                TransactionItem::create([
-                                    'transaction_id' => $trans->id,
-                                    'item_name' => trim($it['item_name']),
-                                    'qty' => (float)($it['qty'] ?? 1),
-                                    'unit_price' => (float)($it['unit_price'] ?? 0),
-                                    'discount' => (float)($it['discount'] ?? 0),
-                                    'total_price' => (float)($it['total_price'] ?? 0),
-                                ]);
-                            }
-                        }
-                    }
-                    $synced++;
-                }
-            }
-
-            return response()->json([
-                'status' => 'success',
-                'message' => "Sinkronisasi berhasil: {$synced} transaksi disimpan.",
-                'synced_count' => $synced
-            ], 201);
-        }
-
-        // Single Transaction
+        // Single Transaction Validation
         $validator = Validator::make($request->all(), [
-            'type' => 'required|in:pemasukan,pengeluaran',
+            'type' => 'required|in:pemasukan,pengeluaran,transfer',
             'amount' => 'required|numeric|min:1',
+            'account_id' => 'nullable|exists:accounts,id',
+            'destination_account_id' => 'nullable|exists:accounts,id',
             'category' => 'nullable|string|max:50',
             'transaction_date' => 'required|date',
             'notes' => 'nullable|string',
@@ -141,12 +154,14 @@ class TransactionController extends Controller
 
         $transaction = Transaction::create([
             'user_id' => $userId,
+            'account_id' => $request->account_id,
+            'destination_account_id' => $request->destination_account_id,
             'type' => $request->type,
             'amount' => (float)$request->amount,
             'subtotal' => (float)($request->subtotal ?? $request->amount),
             'discount' => (float)($request->discount ?? 0),
             'tax' => (float)($request->tax ?? 0),
-            'category' => $request->category ?: 'Lainnya',
+            'category' => $request->type === 'transfer' ? 'Transfer Antar Rekening' : ($request->category ?: 'Lainnya'),
             'transaction_date' => $request->transaction_date,
             'notes' => $request->notes,
             'receipt_image_url' => $request->receipt_image_url
@@ -168,15 +183,18 @@ class TransactionController extends Controller
             }
         }
 
+        // Apply balance mutation to account
+        $this->applyAccountBalance($transaction, false);
+
         return response()->json([
             'status' => 'success',
-            'message' => 'Transaksi berhasil ditambahkan.',
-            'data' => $transaction->load('items')
+            'message' => 'Transaksi berhasil dicatat.',
+            'data' => $transaction->load(['items', 'account', 'destinationAccount'])
         ], 201);
     }
 
     /**
-     * Update an existing transaction with items.
+     * Update an existing transaction.
      */
     public function update(Request $request, $id = null)
     {
@@ -189,8 +207,10 @@ class TransactionController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'type' => 'required|in:pemasukan,pengeluaran',
+            'type' => 'required|in:pemasukan,pengeluaran,transfer',
             'amount' => 'required|numeric|min:1',
+            'account_id' => 'nullable|exists:accounts,id',
+            'destination_account_id' => 'nullable|exists:accounts,id',
             'category' => 'nullable|string|max:50',
             'transaction_date' => 'required|date',
             'notes' => 'nullable|string',
@@ -201,13 +221,18 @@ class TransactionController extends Controller
             return response()->json(['status' => 'error', 'message' => $validator->errors()->first()], 422);
         }
 
+        // Revert old account balance mutation
+        $this->applyAccountBalance($transaction, true);
+
         $transaction->update([
+            'account_id' => $request->account_id,
+            'destination_account_id' => $request->destination_account_id,
             'type' => $request->type,
             'amount' => (float)$request->amount,
             'subtotal' => (float)($request->subtotal ?? $request->amount),
             'discount' => (float)($request->discount ?? 0),
             'tax' => (float)($request->tax ?? 0),
-            'category' => $request->category ?: 'Lainnya',
+            'category' => $request->type === 'transfer' ? 'Transfer Antar Rekening' : ($request->category ?: 'Lainnya'),
             'transaction_date' => $request->transaction_date,
             'notes' => $request->notes,
             'receipt_image_url' => $request->receipt_image_url
@@ -230,15 +255,18 @@ class TransactionController extends Controller
             }
         }
 
+        // Apply new account balance mutation
+        $this->applyAccountBalance($transaction, false);
+
         return response()->json([
             'status' => 'success',
             'message' => 'Transaksi berhasil diperbarui.',
-            'data' => $transaction->load('items')
+            'data' => $transaction->load(['items', 'account', 'destinationAccount'])
         ]);
     }
 
     /**
-     * Remove transaction and its items.
+     * Remove transaction, its items, and revert account balance.
      */
     public function destroy(Request $request, $id = null)
     {
@@ -249,6 +277,9 @@ class TransactionController extends Controller
         if (!$transaction) {
             return response()->json(['status' => 'error', 'message' => 'Transaksi tidak ditemukan atau sudah dihapus.'], 404);
         }
+
+        // Revert balance mutation
+        $this->applyAccountBalance($transaction, true);
 
         TransactionItem::where('transaction_id', $transaction->id)->delete();
         $transaction->delete();

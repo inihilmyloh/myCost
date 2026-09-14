@@ -5,8 +5,8 @@ class FinancialCharts {
     this.categoryChart = null;
     this.trendChart = null;
     this.categoryColors = [
-      '#6366f1', '#ec4899', '#f59e0b', '#10b981', 
-      '#3b82f6', '#8b5cf6', '#06b6d4', '#f97316', '#14b8a6', '#64748b'
+      '#10b981', '#059669', '#34d399', '#047857', 
+      '#6ee7b7', '#15803d', '#84cc16', '#f59e0b', '#065f46', '#64748b'
     ];
   }
 
