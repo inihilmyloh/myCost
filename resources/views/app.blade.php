@@ -4,21 +4,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="csrf-token" content="{{ csrf_token() }}">
-  <title>myCost - Catatan Keuangan PWA & Scanner OCR</title>
+  <title>myCost - Catatan Keuangan Pintar & Scanner OCR</title>
 
   <!-- PWA Settings -->
   <link rel="manifest" href="{{ asset('manifest.json') }}">
-  <meta name="theme-color" content="#4f46e5">
+  <meta name="theme-color" content="#6366f1">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="myCost">
   <link rel="apple-touch-icon" href="{{ asset('icons/apple-touch-icon.png') }}">
   <link rel="icon" type="image/svg+xml" href="{{ asset('icons/icon.svg') }}">
 
-  <!-- Typography & Icons -->
+  <!-- Fonts & Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
   <!-- Core Styles -->
@@ -26,7 +26,7 @@
 </head>
 <body>
 
-  <!-- Toast Notification Container -->
+  <!-- Toast Container -->
   <div id="toastContainer" class="toast-container"></div>
 
   <div class="app-container">
@@ -42,7 +42,7 @@
 
       <div class="nav-actions">
         <!-- Online/Offline Badge -->
-        <div id="onlineStatusBadge" class="status-badge" title="Status Koneksi">
+        <div id="onlineStatusBadge" class="status-badge" title="Status Jaringan">
           <span class="status-dot"></span> Online
         </div>
 
@@ -80,7 +80,7 @@
         </div>
 
         <div class="hero-stat-card">
-          <div class="stat-icon-wrap" style="color: #f87171;">
+          <div class="stat-icon-wrap" style="color: #fb7185;">
             <i class="fa-solid fa-arrow-up-right"></i>
           </div>
           <div class="stat-info">
@@ -88,6 +88,22 @@
             <div id="monthExpenseVal" class="stat-val">Rp 0</div>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- Quick Action Bar -->
+    <section class="quick-actions">
+      <div class="action-card-btn" onclick="app.openTransactionModal({type:'pengeluaran'})">
+        <i class="fa-solid fa-circle-minus" style="color: var(--expense);"></i>
+        <span>Catat Keluar</span>
+      </div>
+      <div class="action-card-btn scan" onclick="app.openScannerModal()">
+        <i class="fa-solid fa-camera-retro"></i>
+        <span>Scan Nota</span>
+      </div>
+      <div class="action-card-btn" onclick="app.openTransactionModal({type:'pemasukan'})">
+        <i class="fa-solid fa-circle-plus" style="color: var(--income);"></i>
+        <span>Catat Masuk</span>
       </div>
     </section>
 
@@ -133,9 +149,6 @@
         <div class="glass-card">
           <div class="card-header">
             <h2 class="card-title"><i class="fa-solid fa-clock-rotate-left"></i> Riwayat Transaksi</h2>
-            <button class="chip active" id="openScanBtn" style="background: var(--primary-gradient); color: #fff; border: none; padding: 6px 12px; font-size: 12px;">
-              <i class="fa-solid fa-camera"></i> Scan Nota
-            </button>
           </div>
 
           <!-- Search & Filter Controls -->
@@ -215,6 +228,12 @@
           </div>
         </div>
 
+        <!-- Detected OCR Candidate Numbers (if any) -->
+        <div id="candidateAmountsBox" class="candidate-chips-wrap" style="display: none;">
+          <div class="candidate-chips-title"><i class="fa-solid fa-wand-magic-sparkles"></i> Angka Terdeteksi dari Nota (Klik untuk pilih):</div>
+          <div id="candidateChipsList" class="candidate-chips"></div>
+        </div>
+
         <!-- Amount -->
         <div class="form-group">
           <label class="form-label">Nominal (Rp)</label>
@@ -227,9 +246,7 @@
         <!-- Category Picker -->
         <div class="form-group">
           <label class="form-label">Kategori</label>
-          <div id="categoryGrid" class="category-grid">
-            <!-- Dynamic Category Buttons -->
-          </div>
+          <div id="categoryGrid" class="category-grid"></div>
         </div>
 
         <!-- Date -->
@@ -241,7 +258,7 @@
         <!-- Notes -->
         <div class="form-group">
           <label class="form-label">Catatan / Deskripsi</label>
-          <input type="text" id="transNotes" class="form-control" placeholder="Contoh: Belanja bahan masakan">
+          <input type="text" id="transNotes" class="form-control" placeholder="Contoh: Belanja Indomaret">
         </div>
 
         <!-- Form Action Buttons -->
@@ -265,7 +282,7 @@
         <button class="close-btn"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
-      <!-- Viewfinder Viewport -->
+      <!-- Viewfinder -->
       <div class="scanner-viewport">
         <video id="cameraVideo" autoplay playsinline muted></video>
         <div class="scanner-frame">
@@ -276,13 +293,13 @@
 
       <!-- OCR Scanning Progress -->
       <div id="ocrProgressBox" class="ocr-progress-box">
-        <div id="ocrProgressText" style="font-size: 13px; font-weight: 600;">Sedang menganalisis teks nota...</div>
+        <div id="ocrProgressText" style="font-size: 13px; font-weight: 700; color: var(--text-primary);">Sedang menganalisis teks nota...</div>
         <div class="progress-bar-bg">
           <div id="ocrProgressBar" class="progress-bar-fill"></div>
         </div>
       </div>
 
-      <!-- Scanner Action Controls -->
+      <!-- Scanner Actions -->
       <div style="display: flex; flex-direction: column; gap: 10px;">
         <button type="button" id="capturePhotoBtn" class="btn-primary">
           <i class="fa-solid fa-camera"></i> Ambil Foto & Pindai Nota
@@ -296,7 +313,7 @@
     </div>
   </div>
 
-  <!-- Modal 3: MySQL Database Connection Status -->
+  <!-- Modal 3: MySQL Database Status -->
   <div id="dbStatusModal" class="modal-overlay">
     <div class="modal-content">
       <div class="modal-header">
@@ -309,7 +326,7 @@
     </div>
   </div>
 
-  <!-- External Libraries -->
+  <!-- Libraries -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 

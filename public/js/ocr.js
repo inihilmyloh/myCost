@@ -1,9 +1,8 @@
-// js/ocr.js - Tesseract.js OCR Scanner & Intelligent Receipt Parser
+// js/ocr.js - Advanced Tesseract.js OCR Scanner & Intelligent Indonesian Receipt Parser
 
 class ReceiptScanner {
   constructor() {
     this.videoStream = null;
-    this.worker = null;
     this.isProcessing = false;
   }
 
@@ -28,7 +27,7 @@ class ReceiptScanner {
       return true;
     } catch (err) {
       console.error('Camera access error:', err);
-      throw new Error('Tidak dapat mengakses kamera. Pastikan izin kamera telah diberikan.');
+      throw new Error('Tidak dapat mengakses kamera. Pastikan izin kamera telah diberikan di browser.');
     }
   }
 
@@ -40,13 +39,40 @@ class ReceiptScanner {
     }
   }
 
-  // Capture frame from video to canvas
+  // Capture frame from video to canvas with image preprocessing
   captureFrame(videoElement, canvasElement) {
     const context = canvasElement.getContext('2d');
-    canvasElement.width = videoElement.videoWidth || 640;
-    canvasElement.height = videoElement.videoHeight || 480;
+    canvasElement.width = videoElement.videoWidth || 1280;
+    canvasElement.height = videoElement.videoHeight || 720;
     context.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
-    return canvasElement.toDataURL('image/jpeg', 0.9);
+    return canvasElement.toDataURL('image/jpeg', 0.95);
+  }
+
+  // Pre-process image on canvas to boost OCR accuracy (Grayscale, High Contrast)
+  preprocessImage(imageElement, canvas) {
+    const ctx = canvas.getContext('2d');
+    canvas.width = imageElement.naturalWidth || imageElement.width || 1200;
+    canvas.height = imageElement.naturalHeight || imageElement.height || 1600;
+    ctx.drawImage(imageElement, 0, 0, canvas.width, canvas.height);
+
+    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imgData.data;
+
+    // Convert to grayscale and increase contrast
+    const contrast = 1.35; // Contrast boost
+    const factor = (259 * (contrast * 255 + 255)) / (255 * (259 - contrast * 255));
+
+    for (let i = 0; i < data.length; i += 4) {
+      const avg = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+      const adjusted = factor * (avg - 128) + 128;
+      const finalVal = Math.min(255, Math.max(0, adjusted));
+      data[i] = finalVal;
+      data[i + 1] = finalVal;
+      data[i + 2] = finalVal;
+    }
+
+    ctx.putImageData(imgData, 0, 0);
+    return canvas.toDataURL('image/jpeg', 0.92);
   }
 
   // Process image using Tesseract.js with progress callbacks
@@ -56,12 +82,24 @@ class ReceiptScanner {
 
     try {
       if (typeof Tesseract === 'undefined') {
-        throw new Error('Library Tesseract.js belum dimuat.');
+        throw new Error('Library Tesseract.js belum dimuat. Periksa koneksi internet.');
+      }
+
+      // Pre-process using off-screen image element and canvas
+      let processedSrc = imageSource;
+      try {
+        const offCanvas = document.createElement('canvas');
+        const img = new Image();
+        img.src = imageSource;
+        await new Promise((res) => (img.onload = res));
+        processedSrc = this.preprocessImage(img, offCanvas);
+      } catch (e) {
+        console.warn('Preprocessing skipped:', e);
       }
 
       const result = await Tesseract.recognize(
-        imageSource,
-        'ind+eng', // Indonesian & English
+        processedSrc,
+        'ind+eng',
         {
           logger: (m) => {
             if (onProgress && m.status === 'recognizing text') {
@@ -85,97 +123,104 @@ class ReceiptScanner {
     }
   }
 
-  // Intelligent text parser to extract Total Amount, Date, Category, and Merchant
+  // Intelligent Indonesian receipt parser (Indomaret, Alfamart, SPBU, Resto, Cafe, etc.)
   parseReceiptText(text) {
+    if (!text) return { amount: null, date: new Date().toISOString().split('T')[0], category: 'Belanja', notes: 'Scan Nota', candidates: [] };
+
     const lines = text.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
     const fullText = text.toLowerCase();
 
     const result = {
       amount: null,
       date: null,
-      category: 'Makanan & Minuman',
+      category: 'Belanja',
       notes: '',
-      detectedMerchant: ''
+      detectedMerchant: '',
+      candidates: []
     };
 
-    // 1. Detect Merchant / Store Name from first few lines
-    for (let i = 0; i < Math.min(lines.length, 4); i++) {
+    // 1. Detect Merchant & Category
+    for (let i = 0; i < Math.min(lines.length, 6); i++) {
       const line = lines[i];
-      if (/indomaret|alfamart|superindo|hypermart|transmart|yoma|famima|alfamidi/i.test(line)) {
-        result.detectedMerchant = line;
+      if (/indomaret|indomarco|alfamart|alfamidi|superindo|hypermart|transmart|yoma|famima|hero|lotte/i.test(line)) {
+        result.detectedMerchant = line.replace(/[^a-zA-Z0-9\s]/g, '').trim();
         result.category = 'Belanja';
         break;
-      } else if (/spbu|pertamina|shell|bp akr|petrol/i.test(line)) {
-        result.detectedMerchant = line;
+      } else if (/spbu|pertamina|shell|bp akr|petrol|bensin|solar/i.test(line)) {
+        result.detectedMerchant = line.replace(/[^a-zA-Z0-9\s]/g, '').trim();
         result.category = 'Transportasi';
         break;
-      } else if (/kopi|coffee|cafe|resto|restaurant|warung|dapur|bakso|mie|ayam|kitchen|eatery/i.test(line)) {
-        result.detectedMerchant = line;
+      } else if (/kopi|coffee|cafe|resto|restaurant|warung|dapur|bakso|mie|ayam|kitchen|eatery|mcdonald|kfc|starbucks|hokben|solaria|richeese/i.test(line)) {
+        result.detectedMerchant = line.replace(/[^a-zA-Z0-9\s]/g, '').trim();
         result.category = 'Makanan & Minuman';
         break;
-      } else if (/apotek|pharmacy|kimia farma|k24|guardian|watson|klinik|rs /i.test(line)) {
-        result.detectedMerchant = line;
+      } else if (/apotek|pharmacy|kimia farma|k24|guardian|watson|klinik|rumah sakit|rs /i.test(line)) {
+        result.detectedMerchant = line.replace(/[^a-zA-Z0-9\s]/g, '').trim();
         result.category = 'Kesehatan';
         break;
-      } else if (/cinema|xxi|cgv|cinepolis|game|timezone/i.test(line)) {
-        result.detectedMerchant = line;
+      } else if (/cinema|xxi|cgv|cinepolis|game|timezone|karaoke/i.test(line)) {
+        result.detectedMerchant = line.replace(/[^a-zA-Z0-9\s]/g, '').trim();
         result.category = 'Hiburan';
         break;
       }
     }
 
     if (!result.detectedMerchant && lines.length > 0) {
-      result.detectedMerchant = lines[0]; // fallback top line
+      result.detectedMerchant = lines[0].replace(/[^a-zA-Z0-9\s]/g, '').trim();
     }
 
-    // 2. Extract Total Amount
-    // Regex for common total labels: TOTAL, GRAND TOTAL, TOTAL BELANJA, TAGIHAN, TUNAI, CASH, BAYAR
-    const totalKeywordsRegex = /(?:total\s*(?:belanja|bayar|transaksi|tagihan|akhir|gross|net)?|grand\s*total|subtotal|jumlah|tunai|cash|debit|qris|paid|amount)\s*[:=]?\s*(?:rp\.?|idr)?\s*([0-9.,]+)/i;
+    // 2. Extract Numbers & Amounts
+    // Regex for keywords: TOTAL, TOT, GRAND TOTAL, TOTAL BELANJA, HARGA JUAL, BAYAR, TUNAI, CASH, TAGIHAN, NETT, AMOUNT
+    const keywordMatches = [];
+    const allFoundNumbers = [];
 
-    let candidateAmounts = [];
+    // Search specifically around total lines
+    const totalLineRegex = /(?:total|tot\b|grand\s*total|sub\s*total|harga\s*jual|jumlah|tagihan|tunai|cash|bayar|netto?|amount|rp\.?|idr)/i;
 
-    // Check line by line for total keywords
-    for (const line of lines) {
-      const match = line.match(totalKeywordsRegex);
-      if (match && match[1]) {
-        const cleaned = this.cleanAmount(match[1]);
-        if (cleaned > 0) {
-          candidateAmounts.push(cleaned);
-        }
+    lines.forEach((line) => {
+      // Find all number patterns in line e.g. 35.000, 35,000, 35000, 35 000, 35.500,00
+      const matches = line.match(/(?:rp\.?|idr)?\s*([0-9]{1,3}(?:[.,\s][0-9]{3})+(?:[.,][0-9]{2})?|[0-9]{4,8})/gi);
+      if (matches) {
+        matches.forEach((m) => {
+          const cleanNum = this.cleanAmount(m);
+          if (cleanNum >= 500 && cleanNum <= 50000000) {
+            allFoundNumbers.push(cleanNum);
+            if (totalLineRegex.test(line)) {
+              keywordMatches.push({ amount: cleanNum, line: line });
+            }
+          }
+        });
       }
-    }
+    });
 
-    // Fallback search for all numbers preceded by Rp or formatting
-    if (candidateAmounts.length === 0) {
-      const rpRegex = /(?:rp\.?|idr)\s*([0-9.,]+)/gi;
-      let match;
-      while ((match = rpRegex.exec(text)) !== null) {
-        const cleaned = this.cleanAmount(match[1]);
-        if (cleaned > 0) candidateAmounts.push(cleaned);
-      }
-    }
+    // Pick candidates
+    const uniqueCandidates = [...new Set([...keywordMatches.map((k) => k.amount), ...allFoundNumbers])];
+    result.candidates = uniqueCandidates.slice(0, 5);
 
-    // Select the best candidate (usually the largest number found around total or the last total match)
-    if (candidateAmounts.length > 0) {
-      // Filter out reasonable amount range
-      const validAmounts = candidateAmounts.filter((n) => n >= 500 && n <= 100000000);
-      if (validAmounts.length > 0) {
-        result.amount = Math.max(...validAmounts);
+    // Pick best amount:
+    // If we matched keyword lines with TOTAL/GRAND TOTAL/HARGA JUAL, choose the largest or most relevant
+    if (keywordMatches.length > 0) {
+      // Prioritize lines with TOTAL over TUNAI/KEMBALIAN
+      const exactTotal = keywordMatches.find((k) => /total\s*(?:belanja|harga|jual|bayar|akhir)?/i.test(k.line));
+      if (exactTotal) {
+        result.amount = exactTotal.amount;
       } else {
-        result.amount = candidateAmounts[0];
+        result.amount = keywordMatches[keywordMatches.length - 1].amount;
       }
+    } else if (allFoundNumbers.length > 0) {
+      // Fallback: choose the most probable transaction amount (median or largest within realistic bracket)
+      const filtered = allFoundNumbers.filter((n) => n >= 1000 && n <= 10000000);
+      result.amount = filtered.length > 0 ? Math.max(...filtered) : allFoundNumbers[0];
     }
 
     // 3. Extract Date
-    // Formats: DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD, DD Month YYYY
     const dateRegexes = [
       /\b(20\d{2})[-/.](0[1-9]|1[0-2])[-/.](0[1-9]|[12]\d|3[01])\b/, // YYYY-MM-DD
       /\b(0[1-9]|[12]\d|3[01])[-/.](0[1-9]|1[0-2])[-/.](20\d{2}|\d{2})\b/, // DD-MM-YYYY or DD-MM-YY
-      /\b(0[1-9]|[12]\d|3[01])\s+(jan|feb|mar|apr|mei|may|jun|jul|agu|aug|sep|okt|oct|nov|des|dec)[a-z]*\s+(20\d{2}|\d{2})\b/i // DD Mmm YYYY
+      /\b(0[1-9]|[12]\d|3[01])\s+(jan|feb|mar|apr|mei|may|jun|jul|agu|aug|sep|okt|oct|nov|des|dec)[a-z]*\s+(20\d{2}|\d{2})\b/i
     ];
 
     for (const line of lines) {
-      // Check standard date
       const match1 = line.match(dateRegexes[0]);
       if (match1) {
         result.date = `${match1[1]}-${match1[2]}-${match1[3]}`;
@@ -200,35 +245,31 @@ class ReceiptScanner {
       }
     }
 
-    // Default to today if date not found or invalid
     if (!result.date || isNaN(new Date(result.date).getTime())) {
       result.date = new Date().toISOString().split('T')[0];
     }
 
-    // Compose default notes
+    // Default notes
     result.notes = result.detectedMerchant 
       ? `Nota: ${result.detectedMerchant.substring(0, 50)}` 
-      : 'Hasil Scan Nota';
+      : 'Belanja Minimarket / Nota';
 
     return result;
   }
 
-  // Convert string number with commas/periods into valid float
+  // Convert string number with commas, dots, spaces into valid integer
   cleanAmount(str) {
     if (!str) return 0;
-    let clean = str.replace(/[^\d.,]/g, '');
+    let clean = str.replace(/[^\d.,]/g, '').trim();
 
-    // Handle Indonesian format 50.000,00 or 50,000.00
+    // 50.000,00 or 50,000.00
     if (clean.includes('.') && clean.includes(',')) {
       if (clean.lastIndexOf('.') > clean.lastIndexOf(',')) {
-        // 50,000.00
         clean = clean.replace(/,/g, '');
       } else {
-        // 50.000,00
         clean = clean.replace(/\./g, '').replace(',', '.');
       }
     } else if (clean.includes('.')) {
-      // Might be thousand separator 50.000
       const parts = clean.split('.');
       if (parts.length > 1 && parts[parts.length - 1].length === 3) {
         clean = clean.replace(/\./g, '');
@@ -236,7 +277,6 @@ class ReceiptScanner {
         clean = clean.replace(/\./g, '');
       }
     } else if (clean.includes(',')) {
-      // 50,000
       const parts = clean.split(',');
       if (parts.length > 1 && parts[parts.length - 1].length === 3) {
         clean = clean.replace(/,/g, '');

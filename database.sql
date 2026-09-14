@@ -1,10 +1,4 @@
--- Database Schema for myCost
--- Database Name: mycost_db (or finance_app)
-
-CREATE DATABASE IF NOT EXISTS `mycost_db` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE `mycost_db`;
-
--- Transactions Table
+-- Transactions Table Schema for InfinityFree / Shared Hosting
 CREATE TABLE IF NOT EXISTS `transactions` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `type` ENUM('pemasukan', 'pengeluaran') NOT NULL,

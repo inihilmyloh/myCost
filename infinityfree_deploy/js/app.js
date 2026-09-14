@@ -1,4 +1,4 @@
-// js/app.js - Main Application Controller for myCost (Laravel Edition)
+// js/app.js - Main Application Controller for myCost (Shared Hosting & PWA Edition)
 
 class MyCostApp {
   constructor() {
@@ -90,7 +90,6 @@ class MyCostApp {
     }
   }
 
-  // Check URL query parameters (e.g. shortcuts from PWA manifest ?action=scan)
   setupUrlActionHandler() {
     const urlParams = new URLSearchParams(window.location.search);
     const action = urlParams.get('action');
@@ -105,14 +104,10 @@ class MyCostApp {
   // Event Listeners
   // ----------------------------------------------------
   bindEvents() {
-    // Theme toggle
     document.getElementById('themeToggleBtn')?.addEventListener('click', () => this.toggleTheme());
-
-    // Month Navigation
     document.getElementById('prevMonthBtn')?.addEventListener('click', () => this.changeMonth(-1));
     document.getElementById('nextMonthBtn')?.addEventListener('click', () => this.changeMonth(1));
 
-    // Search & Filter
     document.getElementById('searchInput')?.addEventListener('input', (e) => {
       this.searchQuery = e.target.value.toLowerCase();
       this.renderTransactionsList();
@@ -127,7 +122,6 @@ class MyCostApp {
       });
     });
 
-    // Modals Open / Close
     document.getElementById('fabAddBtn')?.addEventListener('click', () => this.openTransactionModal());
     document.getElementById('openScanBtn')?.addEventListener('click', () => this.openScannerModal());
     document.getElementById('navAddBtn')?.addEventListener('click', () => this.openTransactionModal());
@@ -135,7 +129,6 @@ class MyCostApp {
     document.getElementById('exportDataBtn')?.addEventListener('click', () => this.exportToCSV());
     document.getElementById('dbStatusBtn')?.addEventListener('click', () => this.openDbStatusModal());
 
-    // Close buttons for modals
     document.querySelectorAll('.modal-overlay .close-btn').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         const modal = e.target.closest('.modal-overlay');
@@ -143,7 +136,6 @@ class MyCostApp {
       });
     });
 
-    // Close on overlay background click
     document.querySelectorAll('.modal-overlay').forEach((modal) => {
       modal.addEventListener('click', (e) => {
         if (e.target === modal) {
@@ -152,24 +144,14 @@ class MyCostApp {
       });
     });
 
-    // Form Type Switcher (Pemasukan vs Pengeluaran)
     document.getElementById('btnTypeExpense')?.addEventListener('click', () => this.setFormType('pengeluaran'));
     document.getElementById('btnTypeIncome')?.addEventListener('click', () => this.setFormType('pemasukan'));
-
-    // Transaction Form Submit
     document.getElementById('transactionForm')?.addEventListener('submit', (e) => this.handleFormSubmit(e));
-
-    // Delete Button in Modal
     document.getElementById('deleteTransBtn')?.addEventListener('click', () => this.handleDeleteTransaction());
-
-    // Scanner Controls
     document.getElementById('capturePhotoBtn')?.addEventListener('click', () => this.captureAndProcessScanner());
     document.getElementById('uploadReceiptInput')?.addEventListener('change', (e) => this.handleReceiptUploadInput(e));
   }
 
-  // ----------------------------------------------------
-  // Month Controls
-  // ----------------------------------------------------
   changeMonth(direction) {
     const [year, month] = this.currentMonth.split('-').map(Number);
     const date = new Date(year, month - 1 + direction, 1);
@@ -188,23 +170,11 @@ class MyCostApp {
   }
 
   // ----------------------------------------------------
-  // API & Data Fetching
+  // API & Data Fetching (Direct PHP Endpoints)
   // ----------------------------------------------------
-  getHeaders() {
-    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    const headers = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    };
-    if (token) {
-      headers['X-CSRF-TOKEN'] = token;
-    }
-    return headers;
-  }
-
   async fetchCategories() {
     try {
-      const res = await fetch('api/categories', { headers: this.getHeaders() });
+      const res = await fetch('api/categories.php');
       const json = await res.json();
       if (json.status === 'success' && json.data) {
         this.categories = json.data;
@@ -237,7 +207,7 @@ class MyCostApp {
 
     try {
       // 1. Fetch Stats for Selected Month
-      const statsRes = await fetch(`api/stats?month=${this.currentMonth}`, { headers: this.getHeaders() });
+      const statsRes = await fetch(`api/stats.php?month=${this.currentMonth}`);
       if (statsRes.ok) {
         const statsJson = await statsRes.json();
         if (statsJson.status === 'success') {
@@ -248,7 +218,7 @@ class MyCostApp {
       }
 
       // 2. Fetch Transactions for Selected Month
-      const transRes = await fetch(`api/transactions?month=${this.currentMonth}`, { headers: this.getHeaders() });
+      const transRes = await fetch(`api/transactions.php?month=${this.currentMonth}`);
       if (transRes.ok) {
         const transJson = await transRes.json();
         if (transJson.status === 'success') {
@@ -385,9 +355,6 @@ class MyCostApp {
     return found ? found.icon : 'fa-receipt';
   }
 
-  // ----------------------------------------------------
-  // Form & Category Grid Handling
-  // ----------------------------------------------------
   setFormType(type) {
     this.activeFormType = type;
     const btnExpense = document.getElementById('btnTypeExpense');
@@ -446,20 +413,6 @@ class MyCostApp {
       this.renderCategoryGrid();
     }
 
-    // Render OCR Candidates if available
-    const candidateBox = document.getElementById('candidateAmountsBox');
-    const candidateList = document.getElementById('candidateChipsList');
-    if (candidateBox && candidateList) {
-      if (prefill?.candidates && prefill.candidates.length > 0) {
-        candidateBox.style.display = 'block';
-        candidateList.innerHTML = prefill.candidates.map((c) => `
-          <div class="candidate-chip" onclick="document.getElementById('transAmount').value = ${c};">Rp ${Number(c).toLocaleString('id-ID')}</div>
-        `).join('');
-      } else {
-        candidateBox.style.display = 'none';
-      }
-    }
-
     if (prefill?.receipt_image_url) {
       this.receiptImageUrl = prefill.receipt_image_url;
     }
@@ -515,11 +468,10 @@ class MyCostApp {
 
     try {
       if (navigator.onLine) {
-        const url = this.editingTransactionId ? `api/transactions/${this.editingTransactionId}` : 'api/transactions';
         const method = this.editingTransactionId ? 'PUT' : 'POST';
-        const res = await fetch(url, {
+        const res = await fetch('api/transactions.php', {
           method: method,
-          headers: this.getHeaders(),
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
         const json = await res.json();
@@ -552,9 +504,8 @@ class MyCostApp {
 
     try {
       if (navigator.onLine) {
-        const res = await fetch(`api/transactions/${this.editingTransactionId}`, {
-          method: 'DELETE',
-          headers: this.getHeaders()
+        const res = await fetch(`api/transactions.php?id=${this.editingTransactionId}`, {
+          method: 'DELETE'
         });
         const json = await res.json();
         if (json.status === 'success') {
@@ -618,8 +569,7 @@ class MyCostApp {
         amount: result.parsed.amount,
         date: result.parsed.date,
         category: result.parsed.category,
-        notes: result.parsed.notes,
-        candidates: result.parsed.candidates
+        notes: result.parsed.notes
       });
 
       this.uploadReceiptPhotoBase64(imageSource);
@@ -663,8 +613,7 @@ class MyCostApp {
           amount: result.parsed.amount,
           date: result.parsed.date,
           category: result.parsed.category,
-          notes: result.parsed.notes,
-          candidates: result.parsed.candidates
+          notes: result.parsed.notes
         });
 
         this.uploadReceiptPhotoBase64(imageSource);
@@ -682,9 +631,9 @@ class MyCostApp {
   async uploadReceiptPhotoBase64(base64Data) {
     if (!navigator.onLine) return;
     try {
-      const res = await fetch('api/upload', {
+      const res = await fetch('api/upload.php', {
         method: 'POST',
-        headers: this.getHeaders(),
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ image_base64: base64Data })
       });
       const json = await res.json();
@@ -713,9 +662,9 @@ class MyCostApp {
         .map((q) => q.data);
 
       if (itemsToSync.length > 0) {
-        const res = await fetch('api/transactions', {
+        const res = await fetch('api/transactions.php', {
           method: 'POST',
-          headers: this.getHeaders(),
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ sync: true, items: itemsToSync })
         });
         const json = await res.json();
@@ -769,26 +718,26 @@ class MyCostApp {
   async openDbStatusModal() {
     this.openModal('dbStatusModal');
     const container = document.getElementById('dbStatusContent');
-    container.innerHTML = '<p><i class="fa-solid fa-spinner fa-spin"></i> Memeriksa koneksi database MySQL Laravel...</p>';
+    container.innerHTML = '<p><i class="fa-solid fa-spinner fa-spin"></i> Memeriksa koneksi database MySQL...</p>';
 
     try {
-      const res = await fetch('setup-check');
+      const res = await fetch('api/setup.php');
       const json = await res.json();
       if (json.connected) {
         container.innerHTML = `
           <div style="text-align: center; padding: 10px;">
             <i class="fa-solid fa-circle-check" style="font-size: 48px; color: var(--income); margin-bottom: 12px;"></i>
-            <h3 style="margin-bottom: 8px;">Laravel & MySQL Terhubung!</h3>
-            <p style="color: var(--text-secondary); font-size: 14px;">Database: <strong>mycost_db</strong></p>
+            <h3 style="margin-bottom: 8px;">Database MySQL Terhubung!</h3>
+            <p style="color: var(--text-secondary); font-size: 14px;">Database: <strong>if0_42910496_mycost_db</strong></p>
             <p style="color: var(--text-secondary); font-size: 14px;">Total Transaksi: <strong>${json.total_transactions}</strong></p>
-            <p style="color: var(--income); font-size: 13px; margin-top: 8px;"><i class="fa-solid fa-shield-halved"></i> Eloquent ORM & REST API Aktif</p>
+            <p style="color: var(--income); font-size: 13px; margin-top: 8px;"><i class="fa-solid fa-cloud"></i> Hosting InfinityFree Aktif</p>
           </div>
         `;
       } else {
         container.innerHTML = `
           <div style="text-align: center; padding: 10px;">
             <i class="fa-solid fa-circle-exclamation" style="font-size: 48px; color: var(--expense); margin-bottom: 12px;"></i>
-            <h3 style="margin-bottom: 8px;">MySQL Belum Aktif</h3>
+            <h3 style="margin-bottom: 8px;">MySQL Belum Terhubung</h3>
             <p style="color: var(--text-secondary); font-size: 14px;">${json.message}</p>
           </div>
         `;
@@ -797,8 +746,8 @@ class MyCostApp {
       container.innerHTML = `
         <div style="text-align: center; padding: 10px;">
           <i class="fa-solid fa-triangle-exclamation" style="font-size: 48px; color: var(--warning); margin-bottom: 12px;"></i>
-          <h3 style="margin-bottom: 8px;">Koneksi Gagal</h3>
-          <p style="color: var(--text-secondary); font-size: 14px;">Pastikan MySQL di Laragon aktif dan migrasi database sudah dijalankan.</p>
+          <h3 style="margin-bottom: 8px;">Koneksi Error</h3>
+          <p style="color: var(--text-secondary); font-size: 14px;">Pastikan password di config/database.php sudah sesuai dengan password vPanel Anda.</p>
         </div>
       `;
     }

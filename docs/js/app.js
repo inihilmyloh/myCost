@@ -446,6 +446,20 @@ class MyCostApp {
       this.renderCategoryGrid();
     }
 
+    // Render OCR Candidates if available
+    const candidateBox = document.getElementById('candidateAmountsBox');
+    const candidateList = document.getElementById('candidateChipsList');
+    if (candidateBox && candidateList) {
+      if (prefill?.candidates && prefill.candidates.length > 0) {
+        candidateBox.style.display = 'block';
+        candidateList.innerHTML = prefill.candidates.map((c) => `
+          <div class="candidate-chip" onclick="document.getElementById('transAmount').value = ${c};">Rp ${Number(c).toLocaleString('id-ID')}</div>
+        `).join('');
+      } else {
+        candidateBox.style.display = 'none';
+      }
+    }
+
     if (prefill?.receipt_image_url) {
       this.receiptImageUrl = prefill.receipt_image_url;
     }
@@ -604,7 +618,8 @@ class MyCostApp {
         amount: result.parsed.amount,
         date: result.parsed.date,
         category: result.parsed.category,
-        notes: result.parsed.notes
+        notes: result.parsed.notes,
+        candidates: result.parsed.candidates
       });
 
       this.uploadReceiptPhotoBase64(imageSource);
@@ -648,7 +663,8 @@ class MyCostApp {
           amount: result.parsed.amount,
           date: result.parsed.date,
           category: result.parsed.category,
-          notes: result.parsed.notes
+          notes: result.parsed.notes,
+          candidates: result.parsed.candidates
         });
 
         this.uploadReceiptPhotoBase64(imageSource);
