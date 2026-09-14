@@ -140,15 +140,21 @@ class MyCostApp {
     const userPill = document.getElementById('userProfilePill');
     const userNameLabel = document.getElementById('userNameLabel');
     const userAvatar = document.getElementById('userAvatar');
+    const guestBanner = document.getElementById('guestBanner');
+    const navAuthLabel = document.getElementById('navAuthLabel');
 
     if (this.currentUser) {
       if (userNameLabel) userNameLabel.textContent = this.currentUser.name || 'User';
       if (userAvatar) userAvatar.textContent = (this.currentUser.name || 'U').charAt(0).toUpperCase();
       if (userPill) userPill.style.display = 'flex';
+      if (guestBanner) guestBanner.style.display = 'none';
+      if (navAuthLabel) navAuthLabel.textContent = (this.currentUser.name || 'Akun').split(' ')[0];
     } else {
-      if (userNameLabel) userNameLabel.textContent = 'Login';
-      if (userAvatar) userAvatar.textContent = '<i class="fa-solid fa-user"></i>';
+      if (userNameLabel) userNameLabel.textContent = 'Masuk / Daftar';
+      if (userAvatar) userAvatar.innerHTML = '<i class="fa-solid fa-user"></i>';
       if (userPill) userPill.style.display = 'flex';
+      if (guestBanner) guestBanner.style.display = 'flex';
+      if (navAuthLabel) navAuthLabel.textContent = 'Masuk';
     }
   }
 
@@ -160,19 +166,37 @@ class MyCostApp {
   switchAuthTab(tab) {
     const loginForm = document.getElementById('loginForm');
     const registerForm = document.getElementById('registerForm');
+    const profileView = document.getElementById('profileView');
     const tabLogin = document.getElementById('tabLoginBtn');
     const tabRegister = document.getElementById('tabRegisterBtn');
+    const authTabs = document.querySelector('.auth-tabs');
+
+    if (this.currentUser && tab === 'profile') {
+      if (loginForm) loginForm.style.display = 'none';
+      if (registerForm) registerForm.style.display = 'none';
+      if (profileView) profileView.style.display = 'block';
+      if (authTabs) authTabs.style.display = 'none';
+      
+      const profName = document.getElementById('profileUserName');
+      const profEmail = document.getElementById('profileUserEmail');
+      if (profName) profName.textContent = this.currentUser.name;
+      if (profEmail) profEmail.textContent = this.currentUser.email;
+      return;
+    }
+
+    if (authTabs) authTabs.style.display = 'grid';
+    if (profileView) profileView.style.display = 'none';
 
     if (tab === 'login') {
-      loginForm.style.display = 'block';
-      registerForm.style.display = 'none';
-      tabLogin.classList.add('active');
-      tabRegister.classList.remove('active');
+      if (loginForm) loginForm.style.display = 'block';
+      if (registerForm) registerForm.style.display = 'none';
+      if (tabLogin) tabLogin.classList.add('active');
+      if (tabRegister) tabRegister.classList.remove('active');
     } else {
-      loginForm.style.display = 'none';
-      registerForm.style.display = 'block';
-      tabRegister.classList.add('active');
-      tabLogin.classList.remove('active');
+      if (loginForm) loginForm.style.display = 'none';
+      if (registerForm) registerForm.style.display = 'block';
+      if (tabRegister) tabRegister.classList.add('active');
+      if (tabLogin) tabLogin.classList.remove('active');
     }
   }
 
@@ -265,12 +289,26 @@ class MyCostApp {
 
     document.getElementById('userProfilePill')?.addEventListener('click', () => {
       if (this.currentUser) {
-        if (confirm(`Login sebagai ${this.currentUser.name} (${this.currentUser.email}). Apakah Anda ingin logout?`)) {
-          this.handleLogout();
-        }
+        this.openAuthModal('profile');
       } else {
         this.openAuthModal('login');
       }
+    });
+
+    document.getElementById('guestBanner')?.addEventListener('click', () => {
+      this.openAuthModal('login');
+    });
+
+    document.getElementById('navAuthBtn')?.addEventListener('click', () => {
+      if (this.currentUser) {
+        this.openAuthModal('profile');
+      } else {
+        this.openAuthModal('login');
+      }
+    });
+
+    document.getElementById('logoutBtn')?.addEventListener('click', () => {
+      this.handleLogout();
     });
 
     document.getElementById('tabLoginBtn')?.addEventListener('click', () => this.switchAuthTab('login'));

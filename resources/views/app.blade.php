@@ -69,6 +69,13 @@
       </div>
     </header>
 
+    <!-- Guest Alert Banner (Visible when not logged in) -->
+    <div id="guestBanner" class="guest-banner" style="display: none;">
+      <i class="fa-solid fa-user-lock"></i>
+      <span>Anda belum login. <strong>Klik di sini untuk Masuk atau Buat Akun</strong> agar data Anda tersimpan aman.</span>
+      <i class="fa-solid fa-chevron-right"></i>
+    </div>
+
     <!-- Main Balance Hero Widget -->
     <section class="balance-hero">
       <div class="hero-label">Total Saldo Bersih</div>
@@ -205,6 +212,10 @@
     <button id="navAddBtn" class="nav-item">
       <i class="fa-solid fa-circle-plus"></i>
       <span>Tambah</span>
+    </button>
+    <button id="navAuthBtn" class="nav-item">
+      <i class="fa-solid fa-circle-user"></i>
+      <span id="navAuthLabel">Akun</span>
     </button>
   </nav>
 
@@ -419,6 +430,18 @@
           <i class="fa-solid fa-user-plus"></i> Buat Akun Baru
         </button>
       </form>
+
+      <!-- Profile Logged In View -->
+      <div id="profileView" style="display: none; text-align: center; padding: 10px 0;">
+        <div style="width: 70px; height: 70px; border-radius: 50%; background: var(--primary-gradient); display: flex; align-items: center; justify-content: center; font-size: 28px; color: #fff; margin: 0 auto 16px auto;">
+          <i class="fa-solid fa-circle-user"></i>
+        </div>
+        <h4 id="profileUserName" style="font-size: 18px; margin-bottom: 4px; font-weight: 800;">User</h4>
+        <p id="profileUserEmail" style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">email@example.com</p>
+        <button type="button" id="logoutBtn" class="btn-secondary btn-danger">
+          <i class="fa-solid fa-right-from-bracket"></i> Keluar dari Akun (Logout)
+        </button>
+      </div>
     </div>
   </div>
 

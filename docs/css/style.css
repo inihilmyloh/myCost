@@ -218,22 +218,25 @@ h1, h2, h3, h4, .brand-font {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 5px 14px 5px 6px;
+  padding: 6px 14px 6px 8px;
   border-radius: 30px;
   background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--primary);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.25);
   cursor: pointer;
   transition: var(--transition);
 }
 
 .user-pill:hover {
   background: var(--bg-card-hover);
-  border-color: var(--border-glow);
+  border-color: var(--primary-light);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4);
 }
 
 .user-avatar {
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: var(--primary-gradient);
   display: flex;
@@ -247,10 +250,44 @@ h1, h2, h3, h4, .brand-font {
 .user-name-label {
   font-size: 13px;
   font-weight: 700;
-  max-width: 100px;
+  max-width: 110px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--primary-light);
+}
+
+/* Guest Banner Alert */
+.guest-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.22) 100%);
+  border: 1px solid var(--border-glow);
+  border-radius: var(--radius-md);
+  padding: 12px 18px;
+  margin-bottom: 20px;
+  cursor: pointer;
+  transition: var(--transition);
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.guest-banner:hover {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(5, 150, 105, 0.32) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.25);
+}
+
+.guest-banner i:first-child {
+  font-size: 18px;
+  color: var(--primary);
+}
+
+.guest-banner strong {
+  color: var(--primary-light);
+  text-decoration: underline;
 }
 
 /* Balance Hero Card */
