@@ -2,7 +2,7 @@
   "name": "myCost - Catatan Keuangan PWA",
   "short_name": "myCost",
   "description": "Aplikasi PWA pencatat keuangan pintar dengan OCR Scanner & MySQL",
-  "start_url": "./index.html",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#06110d",
   "theme_color": "#10b981",
@@ -32,14 +32,14 @@
       "name": "Tambah Transaksi",
       "short_name": "Tambah",
       "description": "Catat transaksi baru",
-      "url": "./index.html?action=add",
+      "url": "./?action=add",
       "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Pindai Nota",
       "short_name": "Scan Nota",
       "description": "Scan struk / nota belanja dengan OCR",
-      "url": "./index.html?action=scan",
+      "url": "./?action=scan",
       "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
     }
   ],
