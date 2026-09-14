@@ -332,6 +332,7 @@ class MyCostApp {
     document.getElementById('deleteTransBtn')?.addEventListener('click', () => this.handleDeleteTransaction());
 
     document.getElementById('capturePhotoBtn')?.addEventListener('click', () => this.captureAndProcessScanner());
+    document.getElementById('cameraDirectInput')?.addEventListener('change', (e) => this.handleReceiptUploadInput(e));
     document.getElementById('uploadReceiptInput')?.addEventListener('change', (e) => this.handleReceiptUploadInput(e));
     document.getElementById('addItemBtn')?.addEventListener('click', () => this.addItemRow());
   }
@@ -1219,8 +1220,38 @@ class MyCostApp {
   openScannerModal() {
     this.openModal('scannerModal');
     this.showProgressBar(false);
-    if (typeof receiptScanner !== 'undefined') {
-      receiptScanner.startCamera('cameraVideo');
+
+    const hasMediaDevices = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    const cameraSourceGroup = document.getElementById('cameraSourceGroup');
+    const scannerViewport = document.querySelector('.scanner-viewport');
+    const capturePhotoBtn = document.getElementById('capturePhotoBtn');
+    const mobileCameraNotice = document.getElementById('mobileCameraNotice');
+    const mobileCameraBtn = document.getElementById('mobileCameraBtn');
+
+    if (!hasMediaDevices) {
+      // Mobile HTTP LAN without SSL: navigator.mediaDevices is blocked by browser security
+      if (cameraSourceGroup) cameraSourceGroup.style.display = 'none';
+      if (scannerViewport) scannerViewport.style.display = 'none';
+      if (capturePhotoBtn) capturePhotoBtn.style.display = 'none';
+      if (mobileCameraNotice) mobileCameraNotice.style.display = 'block';
+      if (mobileCameraBtn) mobileCameraBtn.style.display = 'flex';
+    } else {
+      if (cameraSourceGroup) cameraSourceGroup.style.display = 'block';
+      if (scannerViewport) scannerViewport.style.display = 'flex';
+      if (capturePhotoBtn) capturePhotoBtn.style.display = 'flex';
+      if (mobileCameraNotice) mobileCameraNotice.style.display = 'none';
+      if (mobileCameraBtn) mobileCameraBtn.style.display = 'none';
+
+      if (typeof receiptScanner !== 'undefined') {
+        receiptScanner.startCamera('cameraVideo').catch((err) => {
+          console.warn('Live stream camera not available, falling back to native camera:', err);
+          if (cameraSourceGroup) cameraSourceGroup.style.display = 'none';
+          if (scannerViewport) scannerViewport.style.display = 'none';
+          if (capturePhotoBtn) capturePhotoBtn.style.display = 'none';
+          if (mobileCameraNotice) mobileCameraNotice.style.display = 'block';
+          if (mobileCameraBtn) mobileCameraBtn.style.display = 'flex';
+        });
+      }
     }
   }
 

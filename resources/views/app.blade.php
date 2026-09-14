@@ -602,14 +602,14 @@
       </div>
 
       <!-- Camera Selector (For laptop with IR vs RGB webcam) -->
-      <div class="form-group" style="margin-bottom: 12px;">
+      <div id="cameraSourceGroup" class="form-group" style="margin-bottom: 12px;">
         <label class="form-label" style="font-size: 12px;"><i class="fa-solid fa-video"></i> Sumber Kamera:</label>
         <select id="cameraSourceSelect" class="form-control" style="font-size: 13px;" onchange="receiptScanner.switchCamera('cameraVideo', this.value)">
           <option value="">Pilih Kamera...</option>
         </select>
       </div>
 
-      <!-- Viewfinder -->
+      <!-- Live Viewfinder (Laptop / HTTPS) -->
       <div class="scanner-viewport">
         <video id="cameraVideo" autoplay playsinline muted></video>
         <div class="scanner-frame">
@@ -617,6 +617,15 @@
         </div>
       </div>
       <canvas id="scannerCanvas" style="display: none;"></canvas>
+
+      <!-- Mobile Camera Card (For HTTP Local LAN / High-Resolution Photo) -->
+      <div id="mobileCameraNotice" style="display: none; text-align: center; padding: 22px 16px; background: var(--bg-card); border: 1px dashed var(--border-glow); border-radius: var(--radius-md); margin-bottom: 16px;">
+        <div style="width: 52px; height: 52px; border-radius: 50%; background: rgba(16, 185, 129, 0.18); color: var(--primary-light); display: flex; align-items: center; justify-content: center; font-size: 22px; margin: 0 auto 12px auto;">
+          <i class="fa-solid fa-camera"></i>
+        </div>
+        <h4 style="font-size: 15px; font-weight: 700; margin-bottom: 4px;">Kamera HP Siap Digunakan</h4>
+        <p style="font-size: 12px; color: var(--text-muted); line-height: 1.4;">Gunakan kamera bawaan HP untuk foto struk beresolusi tinggi dan jernih.</p>
+      </div>
 
       <!-- OCR Scanning Progress -->
       <div id="ocrProgressBox" class="ocr-progress-box">
@@ -626,14 +635,21 @@
         </div>
       </div>
 
+      <!-- Native Camera File Input (Mobile Shutter) -->
+      <input type="file" id="cameraDirectInput" accept="image/*" capture="environment" style="display: none;">
+
       <!-- Scanner Actions -->
       <div style="display: flex; flex-direction: column; gap: 10px;">
         <button type="button" id="capturePhotoBtn" class="btn-primary">
           <i class="fa-solid fa-camera"></i> Ambil Foto & Pindai Nota
         </button>
 
+        <button type="button" id="mobileCameraBtn" class="btn-primary" style="display: none;" onclick="document.getElementById('cameraDirectInput').click()">
+          <i class="fa-solid fa-camera"></i> Buka Kamera HP & Foto Nota
+        </button>
+
         <label class="btn-secondary" style="cursor: pointer; text-align: center; margin: 0;">
-          <i class="fa-solid fa-image"></i> Unggah Foto Struk dari Galeri
+          <i class="fa-solid fa-image"></i> Pilih Foto dari Galeri
           <input type="file" id="uploadReceiptInput" accept="image/*" style="display: none;">
         </label>
       </div>
