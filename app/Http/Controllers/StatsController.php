@@ -4,20 +4,22 @@ namespace App\Http\Controllers;
 
 use App\Models\Transaction;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
 
 class StatsController extends Controller
 {
     /**
-     * Get financial statistics and chart data.
+     * Get financial statistics and chart data for the active user.
      */
     public function index(Request $request)
     {
+        $userId = $request->header('X-User-Id') ?: (Auth::id() ?: 1);
         $month = $request->input('month', Carbon::now()->format('Y-m'));
 
-        // 1. Overall Totals
-        $overall = Transaction::selectRaw("
+        // 1. Overall Totals for user
+        $overall = Transaction::forUser($userId)->selectRaw("
             COALESCE(SUM(CASE WHEN type = 'pemasukan' THEN amount ELSE 0 END), 0) as total_income,
             COALESCE(SUM(CASE WHEN type = 'pengeluaran' THEN amount ELSE 0 END), 0) as total_expense
         ")->first();
@@ -26,8 +28,8 @@ class StatsController extends Controller
         $totalExpense = (float)($overall->total_expense ?? 0);
         $netBalance = $totalIncome - $totalExpense;
 
-        // 2. Selected Month Totals
-        $monthData = Transaction::month($month)->selectRaw("
+        // 2. Selected Month Totals for user
+        $monthData = Transaction::forUser($userId)->month($month)->selectRaw("
             COALESCE(SUM(CASE WHEN type = 'pemasukan' THEN amount ELSE 0 END), 0) as month_income,
             COALESCE(SUM(CASE WHEN type = 'pengeluaran' THEN amount ELSE 0 END), 0) as month_expense,
             COUNT(*) as transaction_count
@@ -38,17 +40,17 @@ class StatsController extends Controller
         $monthNet = $monthIncome - $monthExpense;
         $transactionCount = (int)($monthData->transaction_count ?? 0);
 
-        // 3. Category Breakdown (Expenses for selected month)
-        $categories = Transaction::month($month)
+        // 3. Category Breakdown
+        $categories = Transaction::forUser($userId)->month($month)
             ->where('type', 'pengeluaran')
             ->selectRaw('category, SUM(amount) as total_amount, COUNT(*) as count')
             ->groupBy('category')
             ->orderByDesc('total_amount')
             ->get();
 
-        // Fallback if empty in this month, get top overall expense categories
         if ($categories->isEmpty()) {
-            $categories = Transaction::where('type', 'pengeluaran')
+            $categories = Transaction::forUser($userId)
+                ->where('type', 'pengeluaran')
                 ->selectRaw('category, SUM(amount) as total_amount, COUNT(*) as count')
                 ->groupBy('category')
                 ->orderByDesc('total_amount')
@@ -57,7 +59,8 @@ class StatsController extends Controller
         }
 
         // 4. Monthly Trend (Last 6 Months)
-        $monthlyTrend = Transaction::where('transaction_date', '>=', Carbon::now()->subMonths(6)->startOfMonth())
+        $monthlyTrend = Transaction::forUser($userId)
+            ->where('transaction_date', '>=', Carbon::now()->subMonths(6)->startOfMonth())
             ->selectRaw("
                 DATE_FORMAT(transaction_date, '%Y-%m') as month_label,
                 COALESCE(SUM(CASE WHEN type = 'pemasukan' THEN amount ELSE 0 END), 0) as income,
@@ -67,8 +70,10 @@ class StatsController extends Controller
             ->orderBy('month_label', 'asc')
             ->get();
 
-        // 5. Recent 5 Transactions
-        $recentTransactions = Transaction::orderBy('transaction_date', 'desc')
+        // 5. Recent 5 Transactions with items
+        $recentTransactions = Transaction::with('items')
+            ->forUser($userId)
+            ->orderBy('transaction_date', 'desc')
             ->orderBy('id', 'desc')
             ->limit(5)
             ->get();

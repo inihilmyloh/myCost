@@ -12,8 +12,12 @@ class Transaction extends Model
     protected $table = 'transactions';
 
     protected $fillable = [
+        'user_id',
         'type',
         'amount',
+        'subtotal',
+        'discount',
+        'tax',
         'category',
         'transaction_date',
         'notes',
@@ -21,13 +25,37 @@ class Transaction extends Model
     ];
 
     protected $casts = [
+        'user_id' => 'integer',
         'amount' => 'float',
+        'subtotal' => 'float',
+        'discount' => 'float',
+        'tax' => 'float',
         'transaction_date' => 'date:Y-m-d',
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
     ];
 
-    // Scopes for easy filtering
+    // Relationship to Items
+    public function items()
+    {
+        return $this->hasMany(TransactionItem::class, 'transaction_id');
+    }
+
+    // Relationship to User
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    // Scopes
+    public function scopeForUser($query, $userId)
+    {
+        if ($userId) {
+            return $query->where('user_id', $userId);
+        }
+        return $query;
+    }
+
     public function scopeMonth($query, $yearMonth)
     {
         if ($yearMonth) {

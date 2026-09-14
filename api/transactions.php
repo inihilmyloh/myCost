@@ -1,15 +1,24 @@
 <?php
-// api/transactions.php - CRUD REST API for myCost
+// api/transactions.php - CRUD REST API with Itemized Breakdown & Multi-User Support
 require_once __DIR__ . '/../config/database.php';
+
+session_start();
 
 $db = new Database();
 $conn = $db->getConnection();
 
 if (!$conn) {
-    sendJsonResponse([
-        'status' => 'error',
-        'message' => 'Tidak dapat terhubung ke database MySQL.'
-    ], 500);
+    sendJsonResponse(['status' => 'error', 'message' => 'Tidak dapat terhubung ke database MySQL.'], 500);
+}
+
+function getUserId() {
+    if (!empty($_SESSION['user_id'])) {
+        return (int)$_SESSION['user_id'];
+    }
+    $headers = getallheaders();
+    if (!empty($headers['X-User-Id'])) return (int)$headers['X-User-Id'];
+    if (!empty($headers['x-user-id'])) return (int)$headers['x-user-id'];
+    return 1;
 }
 
 $method = isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : 'GET';
@@ -31,16 +40,18 @@ switch ($method) {
         sendJsonResponse(['status' => 'error', 'message' => 'Method not allowed'], 405);
 }
 
-// ----------------------------------------------------
-// GET Handlers
-// ----------------------------------------------------
 function handleGet($conn) {
+    $userId = getUserId();
+
     if (isset($_GET['id'])) {
         $id = (int)$_GET['id'];
-        $stmt = $conn->prepare("SELECT * FROM transactions WHERE id = ?");
-        $stmt->execute([$id]);
+        $stmt = $conn->prepare("SELECT * FROM transactions WHERE id = ? AND user_id = ?");
+        $stmt->execute([$id, $userId]);
         $transaction = $stmt->fetch();
         if ($transaction) {
+            $itemStmt = $conn->prepare("SELECT * FROM transaction_items WHERE transaction_id = ?");
+            $itemStmt->execute([$id]);
+            $transaction['items'] = $itemStmt->fetchAll();
             sendJsonResponse(['status' => 'success', 'data' => $transaction]);
         } else {
             sendJsonResponse(['status' => 'error', 'message' => 'Transaksi tidak ditemukan'], 404);
@@ -48,28 +59,24 @@ function handleGet($conn) {
         return;
     }
 
-    $query = "SELECT * FROM transactions WHERE 1=1";
-    $params = [];
+    $query = "SELECT * FROM transactions WHERE user_id = ?";
+    $params = [$userId];
 
-    // Filter by type
     if (!empty($_GET['type']) && in_array($_GET['type'], ['pemasukan', 'pengeluaran'])) {
         $query .= " AND type = ?";
         $params[] = $_GET['type'];
     }
 
-    // Filter by category
     if (!empty($_GET['category'])) {
         $query .= " AND category = ?";
         $params[] = $_GET['category'];
     }
 
-    // Filter by month (YYYY-MM)
     if (!empty($_GET['month'])) {
         $query .= " AND DATE_FORMAT(transaction_date, '%Y-%m') = ?";
         $params[] = $_GET['month'];
     }
 
-    // Filter by date range
     if (!empty($_GET['start_date'])) {
         $query .= " AND transaction_date >= ?";
         $params[] = $_GET['start_date'];
@@ -79,7 +86,6 @@ function handleGet($conn) {
         $params[] = $_GET['end_date'];
     }
 
-    // Search query in notes or category
     if (!empty($_GET['search'])) {
         $query .= " AND (notes LIKE ? OR category LIKE ?)";
         $searchVal = '%' . $_GET['search'] . '%';
@@ -87,19 +93,23 @@ function handleGet($conn) {
         $params[] = $searchVal;
     }
 
-    // Ordering
     $query .= " ORDER BY transaction_date DESC, id DESC";
 
-    // Pagination (optional)
     if (isset($_GET['limit'])) {
         $limit = max(1, (int)$_GET['limit']);
-        $offset = isset($_GET['offset']) ? max(0, (int)$_GET['offset']) : 0;
-        $query .= " LIMIT " . $limit . " OFFSET " . $offset;
+        $query .= " LIMIT " . $limit;
     }
 
     $stmt = $conn->prepare($query);
     $stmt->execute($params);
     $transactions = $stmt->fetchAll();
+
+    // Attach items for each transaction
+    foreach ($transactions as &$t) {
+        $itemStmt = $conn->prepare("SELECT * FROM transaction_items WHERE transaction_id = ?");
+        $itemStmt->execute([(int)$t['id']]);
+        $t['items'] = $itemStmt->fetchAll();
+    }
 
     sendJsonResponse([
         'status' => 'success',
@@ -108,178 +118,179 @@ function handleGet($conn) {
     ]);
 }
 
-// ----------------------------------------------------
-// POST Handler (Create or Bulk Sync)
-// ----------------------------------------------------
 function handlePost($conn) {
+    $userId = getUserId();
     $rawInput = file_get_contents("php://input");
-    $data = json_decode($rawInput, true);
+    $data = json_decode($rawInput, true) ?: $_POST;
 
-    if (!$data) {
-        $data = $_POST;
-    }
-
-    // Check for bulk sync mode
+    // Bulk sync
     if (isset($data['sync']) && is_array($data['items'])) {
-        $insertedCount = 0;
+        $synced = 0;
         $stmt = $conn->prepare("
-            INSERT INTO transactions (type, amount, category, transaction_date, notes, receipt_image_url)
+            INSERT INTO transactions (user_id, type, amount, subtotal, discount, tax, category, transaction_date, notes, receipt_image_url)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+        $itemStmt = $conn->prepare("
+            INSERT INTO transaction_items (transaction_id, item_name, qty, unit_price, discount, total_price)
             VALUES (?, ?, ?, ?, ?, ?)
         ");
 
         foreach ($data['items'] as $item) {
             if (!empty($item['type']) && !empty($item['amount']) && !empty($item['transaction_date'])) {
-                $type = $item['type'] === 'pemasukan' ? 'pemasukan' : 'pengeluaran';
-                $amount = (float)$item['amount'];
-                $category = !empty($item['category']) ? trim($item['category']) : 'Lainnya';
-                $date = $item['transaction_date'];
-                $notes = !empty($item['notes']) ? trim($item['notes']) : null;
-                $receipt = !empty($item['receipt_image_url']) ? trim($item['receipt_image_url']) : null;
+                $subtotal = isset($item['subtotal']) ? (float)$item['subtotal'] : (float)$item['amount'];
+                $discount = isset($item['discount']) ? (float)$item['discount'] : 0;
+                $tax = isset($item['tax']) ? (float)$item['tax'] : 0;
+                $stmt->execute([
+                    $userId,
+                    $item['type'],
+                    (float)$item['amount'],
+                    $subtotal,
+                    $discount,
+                    $tax,
+                    !empty($item['category']) ? trim($item['category']) : 'Lainnya',
+                    $item['transaction_date'],
+                    !empty($item['notes']) ? trim($item['notes']) : null,
+                    !empty($item['receipt_image_url']) ? trim($item['receipt_image_url']) : null
+                ]);
+                $newId = (int)$conn->lastInsertId();
 
-                $stmt->execute([$type, $amount, $category, $date, $notes, $receipt]);
-                $insertedCount++;
+                if (!empty($item['items']) && is_array($item['items'])) {
+                    foreach ($item['items'] as $it) {
+                        if (!empty($it['item_name'])) {
+                            $itemStmt->execute([
+                                $newId,
+                                trim($it['item_name']),
+                                (float)($it['qty'] ?? 1),
+                                (float)($it['unit_price'] ?? 0),
+                                (float)($it['discount'] ?? 0),
+                                (float)($it['total_price'] ?? 0)
+                            ]);
+                        }
+                    }
+                }
+                $synced++;
             }
         }
 
-        sendJsonResponse([
-            'status' => 'success',
-            'message' => "Sinkronisasi berhasil: {$insertedCount} data transaksi tersimpan.",
-            'synced_count' => $insertedCount
-        ], 201);
+        sendJsonResponse(['status' => 'success', 'message' => "{$synced} transaksi disinkronkan.", 'synced_count' => $synced], 201);
         return;
     }
 
-    // Single item creation
     if (empty($data['type']) || !isset($data['amount']) || empty($data['transaction_date'])) {
-        sendJsonResponse([
-            'status' => 'error',
-            'message' => 'Field type, amount, dan transaction_date wajib diisi.'
-        ], 400);
+        sendJsonResponse(['status' => 'error', 'message' => 'Field type, amount, dan transaction_date wajib diisi.'], 400);
         return;
     }
 
     $type = in_array($data['type'], ['pemasukan', 'pengeluaran']) ? $data['type'] : 'pengeluaran';
     $amount = (float)$data['amount'];
-    if ($amount <= 0) {
-        sendJsonResponse(['status' => 'error', 'message' => 'Nominal harus lebih besar dari 0.'], 400);
-        return;
-    }
-
+    $subtotal = isset($data['subtotal']) ? (float)$data['subtotal'] : $amount;
+    $discount = isset($data['discount']) ? (float)$data['discount'] : 0;
+    $tax = isset($data['tax']) ? (float)$data['tax'] : 0;
     $category = !empty($data['category']) ? trim($data['category']) : 'Lainnya';
     $transaction_date = $data['transaction_date'];
     $notes = !empty($data['notes']) ? trim($data['notes']) : null;
     $receipt_image_url = !empty($data['receipt_image_url']) ? trim($data['receipt_image_url']) : null;
 
     $stmt = $conn->prepare("
-        INSERT INTO transactions (type, amount, category, transaction_date, notes, receipt_image_url)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO transactions (user_id, type, amount, subtotal, discount, tax, category, transaction_date, notes, receipt_image_url)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ");
-    $success = $stmt->execute([$type, $amount, $category, $transaction_date, $notes, $receipt_image_url]);
+    $stmt->execute([$userId, $type, $amount, $subtotal, $discount, $tax, $category, $transaction_date, $notes, $receipt_image_url]);
+    $newId = (int)$conn->lastInsertId();
 
-    if ($success) {
-        $newId = (int)$conn->lastInsertId();
-        sendJsonResponse([
-            'status' => 'success',
-            'message' => 'Transaksi berhasil ditambahkan.',
-            'data' => [
-                'id' => $newId,
-                'type' => $type,
-                'amount' => $amount,
-                'category' => $category,
-                'transaction_date' => $transaction_date,
-                'notes' => $notes,
-                'receipt_image_url' => $receipt_image_url
-            ]
-        ], 201);
-    } else {
-        sendJsonResponse(['status' => 'error', 'message' => 'Gagal menyimpan transaksi.'], 500);
+    // Insert Items
+    if (!empty($data['items']) && is_array($data['items'])) {
+        $itemStmt = $conn->prepare("
+            INSERT INTO transaction_items (transaction_id, item_name, qty, unit_price, discount, total_price)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ");
+        foreach ($data['items'] as $it) {
+            if (!empty($it['item_name'])) {
+                $itemStmt->execute([
+                    $newId,
+                    trim($it['item_name']),
+                    (float)($it['qty'] ?? 1),
+                    (float)($it['unit_price'] ?? 0),
+                    (float)($it['discount'] ?? 0),
+                    (float)($it['total_price'] ?? 0)
+                ]);
+            }
+        }
     }
+
+    sendJsonResponse([
+        'status' => 'success',
+        'message' => 'Transaksi berhasil dicatat!',
+        'data' => ['id' => $newId, 'amount' => $amount, 'transaction_date' => $transaction_date]
+    ], 201);
 }
 
-// ----------------------------------------------------
-// PUT Handler (Update)
-// ----------------------------------------------------
 function handlePut($conn) {
+    $userId = getUserId();
     $rawInput = file_get_contents("php://input");
-    $data = json_decode($rawInput, true);
+    $data = json_decode($rawInput, true) ?: $_POST;
 
     if (empty($data['id'])) {
-        sendJsonResponse(['status' => 'error', 'message' => 'ID transaksi wajib disertakan.'], 400);
-        return;
+        sendJsonResponse(['status' => 'error', 'message' => 'ID transaksi wajib.'], 400);
     }
 
     $id = (int)$data['id'];
-
-    // Check existing
-    $checkStmt = $conn->prepare("SELECT id FROM transactions WHERE id = ?");
-    $checkStmt->execute([$id]);
-    if (!$checkStmt->fetch()) {
-        sendJsonResponse(['status' => 'error', 'message' => 'Transaksi tidak ditemukan.'], 404);
-        return;
-    }
-
     $type = in_array($data['type'], ['pemasukan', 'pengeluaran']) ? $data['type'] : 'pengeluaran';
     $amount = (float)$data['amount'];
+    $subtotal = isset($data['subtotal']) ? (float)$data['subtotal'] : $amount;
+    $discount = isset($data['discount']) ? (float)$data['discount'] : 0;
+    $tax = isset($data['tax']) ? (float)$data['tax'] : 0;
     $category = !empty($data['category']) ? trim($data['category']) : 'Lainnya';
-    $transaction_date = !empty($data['transaction_date']) ? $data['transaction_date'] : date('Y-m-d');
+    $transaction_date = $data['transaction_date'];
     $notes = isset($data['notes']) ? trim($data['notes']) : null;
     $receipt_image_url = isset($data['receipt_image_url']) ? trim($data['receipt_image_url']) : null;
 
     $stmt = $conn->prepare("
         UPDATE transactions
-        SET type = ?, amount = ?, category = ?, transaction_date = ?, notes = ?, receipt_image_url = ?
-        WHERE id = ?
+        SET type = ?, amount = ?, subtotal = ?, discount = ?, tax = ?, category = ?, transaction_date = ?, notes = ?, receipt_image_url = ?
+        WHERE id = ? AND user_id = ?
     ");
-    $success = $stmt->execute([$type, $amount, $category, $transaction_date, $notes, $receipt_image_url, $id]);
+    $stmt->execute([$type, $amount, $subtotal, $discount, $tax, $category, $transaction_date, $notes, $receipt_image_url, $id, $userId]);
 
-    if ($success) {
-        sendJsonResponse([
-            'status' => 'success',
-            'message' => 'Transaksi berhasil diperbarui.',
-            'data' => [
-                'id' => $id,
-                'type' => $type,
-                'amount' => $amount,
-                'category' => $category,
-                'transaction_date' => $transaction_date,
-                'notes' => $notes,
-                'receipt_image_url' => $receipt_image_url
-            ]
-        ]);
-    } else {
-        sendJsonResponse(['status' => 'error', 'message' => 'Gagal memperbarui transaksi.'], 500);
+    // Update items
+    if (isset($data['items']) && is_array($data['items'])) {
+        $conn->prepare("DELETE FROM transaction_items WHERE transaction_id = ?")->execute([$id]);
+        $itemStmt = $conn->prepare("
+            INSERT INTO transaction_items (transaction_id, item_name, qty, unit_price, discount, total_price)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ");
+        foreach ($data['items'] as $it) {
+            if (!empty($it['item_name'])) {
+                $itemStmt->execute([
+                    $id,
+                    trim($it['item_name']),
+                    (float)($it['qty'] ?? 1),
+                    (float)($it['unit_price'] ?? 0),
+                    (float)($it['discount'] ?? 0),
+                    (float)($it['total_price'] ?? 0)
+                ]);
+            }
+        }
     }
+
+    sendJsonResponse(['status' => 'success', 'message' => 'Transaksi berhasil diperbarui.']);
 }
 
-// ----------------------------------------------------
-// DELETE Handler
-// ----------------------------------------------------
 function handleDelete($conn) {
-    $rawInput = file_get_contents("php://input");
-    $data = json_decode($rawInput, true);
-
-    $id = null;
-    if (!empty($_GET['id'])) {
-        $id = (int)$_GET['id'];
-    } elseif (!empty($data['id'])) {
-        $id = (int)$data['id'];
+    $userId = getUserId();
+    $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+    if (!$id) {
+        $raw = json_decode(file_get_contents("php://input"), true);
+        if (!empty($raw['id'])) $id = (int)$raw['id'];
     }
 
     if (!$id) {
-        sendJsonResponse(['status' => 'error', 'message' => 'ID transaksi wajib disertakan.'], 400);
-        return;
+        sendJsonResponse(['status' => 'error', 'message' => 'ID transaksi wajib.'], 400);
     }
 
-    $stmt = $conn->prepare("DELETE FROM transactions WHERE id = ?");
-    $success = $stmt->execute([$id]);
+    $conn->prepare("DELETE FROM transaction_items WHERE transaction_id = ?")->execute([$id]);
+    $stmt = $conn->prepare("DELETE FROM transactions WHERE id = ? AND user_id = ?");
+    $stmt->execute([$id, $userId]);
 
-    if ($stmt->rowCount() > 0) {
-        sendJsonResponse([
-            'status' => 'success',
-            'message' => 'Transaksi berhasil dihapus.',
-            'id' => $id
-        ]);
-    } else {
-        sendJsonResponse(['status' => 'error', 'message' => 'Transaksi tidak ditemukan atau sudah dihapus.'], 404);
-    }
+    sendJsonResponse(['status' => 'success', 'message' => 'Transaksi berhasil dihapus.']);
 }

@@ -1,4 +1,4 @@
-// js/app.js - Main Application Controller for myCost (Laravel Edition)
+// js/app.js - Main Application Controller for myCost (Multi-User & Itemized Breakdown)
 
 class MyCostApp {
   constructor() {
@@ -13,6 +13,8 @@ class MyCostApp {
     this.editingTransactionId = null;
     this.receiptImageUrl = null;
     this.receiptBase64 = null;
+    this.currentUser = JSON.parse(localStorage.getItem('mycost_user') || 'null');
+    this.currentItems = [];
 
     this.init();
   }
@@ -21,6 +23,8 @@ class MyCostApp {
     this.initTheme();
     this.initPWA();
     this.bindEvents();
+    this.updateUserUI();
+    await this.checkAuth();
     await this.fetchCategories();
     await this.loadData();
     this.checkOnlineStatus();
@@ -90,7 +94,6 @@ class MyCostApp {
     }
   }
 
-  // Check URL query parameters (e.g. shortcuts from PWA manifest ?action=scan)
   setupUrlActionHandler() {
     const urlParams = new URLSearchParams(window.location.search);
     const action = urlParams.get('action');
@@ -102,17 +105,179 @@ class MyCostApp {
   }
 
   // ----------------------------------------------------
+  // Headers Helper (Auth + CSRF)
+  // ----------------------------------------------------
+  getHeaders() {
+    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    const headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    };
+    if (token) headers['X-CSRF-TOKEN'] = token;
+    if (this.currentUser?.id) headers['X-User-Id'] = this.currentUser.id;
+    return headers;
+  }
+
+  // ----------------------------------------------------
+  // User Authentication Logic
+  // ----------------------------------------------------
+  async checkAuth() {
+    try {
+      const endpoint = this.getEndpoint('auth/me', 'api/auth.php?action=me');
+      const res = await fetch(endpoint, { headers: this.getHeaders() });
+      const json = await res.json();
+      if (json.authenticated && json.user) {
+        this.currentUser = json.user;
+        localStorage.setItem('mycost_user', JSON.stringify(this.currentUser));
+      }
+    } catch (e) {
+      // Keep local user if any
+    }
+    this.updateUserUI();
+  }
+
+  updateUserUI() {
+    const userPill = document.getElementById('userProfilePill');
+    const userNameLabel = document.getElementById('userNameLabel');
+    const userAvatar = document.getElementById('userAvatar');
+
+    if (this.currentUser) {
+      if (userNameLabel) userNameLabel.textContent = this.currentUser.name || 'User';
+      if (userAvatar) userAvatar.textContent = (this.currentUser.name || 'U').charAt(0).toUpperCase();
+      if (userPill) userPill.style.display = 'flex';
+    } else {
+      if (userNameLabel) userNameLabel.textContent = 'Login';
+      if (userAvatar) userAvatar.textContent = '<i class="fa-solid fa-user"></i>';
+      if (userPill) userPill.style.display = 'flex';
+    }
+  }
+
+  openAuthModal(tab = 'login') {
+    this.openModal('authModal');
+    this.switchAuthTab(tab);
+  }
+
+  switchAuthTab(tab) {
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+    const tabLogin = document.getElementById('tabLoginBtn');
+    const tabRegister = document.getElementById('tabRegisterBtn');
+
+    if (tab === 'login') {
+      loginForm.style.display = 'block';
+      registerForm.style.display = 'none';
+      tabLogin.classList.add('active');
+      tabRegister.classList.remove('active');
+    } else {
+      loginForm.style.display = 'none';
+      registerForm.style.display = 'block';
+      tabRegister.classList.add('active');
+      tabLogin.classList.remove('active');
+    }
+  }
+
+  async handleLogin(e) {
+    e.preventDefault();
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+
+    try {
+      const endpoint = this.getEndpoint('auth/login', 'api/auth.php?action=login');
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ email, password })
+      });
+      const json = await res.json();
+      if (json.status === 'success') {
+        this.currentUser = json.user;
+        localStorage.setItem('mycost_user', JSON.stringify(this.currentUser));
+        this.updateUserUI();
+        this.closeModal('authModal');
+        this.showToast(`Selamat datang, ${this.currentUser.name}!`, 'success');
+        await this.loadData();
+      } else {
+        this.showToast(json.message || 'Login gagal.', 'error');
+      }
+    } catch (err) {
+      this.showToast('Gagal terhubung ke server: ' + err.message, 'error');
+    }
+  }
+
+  async handleRegister(e) {
+    e.preventDefault();
+    const name = document.getElementById('regName').value;
+    const email = document.getElementById('regEmail').value;
+    const password = document.getElementById('regPassword').value;
+
+    try {
+      const endpoint = this.getEndpoint('auth/register', 'api/auth.php?action=register');
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ name, email, password })
+      });
+      const json = await res.json();
+      if (json.status === 'success') {
+        this.currentUser = json.user;
+        localStorage.setItem('mycost_user', JSON.stringify(this.currentUser));
+        this.updateUserUI();
+        this.closeModal('authModal');
+        this.showToast('Pendaftaran akun berhasil!', 'success');
+        await this.loadData();
+      } else {
+        this.showToast(json.message || 'Registrasi gagal.', 'error');
+      }
+    } catch (err) {
+      this.showToast('Gagal mendaftar: ' + err.message, 'error');
+    }
+  }
+
+  async handleLogout() {
+    try {
+      const endpoint = this.getEndpoint('auth/logout', 'api/auth.php?action=logout');
+      await fetch(endpoint, { method: 'POST', headers: this.getHeaders() });
+    } catch (e) {}
+
+    this.currentUser = null;
+    localStorage.removeItem('mycost_user');
+    this.updateUserUI();
+    this.closeModal('authModal');
+    this.showToast('Anda telah logout.', 'info');
+    await this.loadData();
+  }
+
+  getEndpoint(laravelPath, phpPath) {
+    // If running in environment with Laravel API route
+    if (window.location.pathname.includes('/public') || window.location.port === '8000') {
+      return `api/${laravelPath}`;
+    }
+    return phpPath;
+  }
+
+  // ----------------------------------------------------
   // Event Listeners
   // ----------------------------------------------------
   bindEvents() {
-    // Theme toggle
     document.getElementById('themeToggleBtn')?.addEventListener('click', () => this.toggleTheme());
-
-    // Month Navigation
     document.getElementById('prevMonthBtn')?.addEventListener('click', () => this.changeMonth(-1));
     document.getElementById('nextMonthBtn')?.addEventListener('click', () => this.changeMonth(1));
 
-    // Search & Filter
+    document.getElementById('userProfilePill')?.addEventListener('click', () => {
+      if (this.currentUser) {
+        if (confirm(`Login sebagai ${this.currentUser.name} (${this.currentUser.email}). Apakah Anda ingin logout?`)) {
+          this.handleLogout();
+        }
+      } else {
+        this.openAuthModal('login');
+      }
+    });
+
+    document.getElementById('tabLoginBtn')?.addEventListener('click', () => this.switchAuthTab('login'));
+    document.getElementById('tabRegisterBtn')?.addEventListener('click', () => this.switchAuthTab('register'));
+    document.getElementById('loginForm')?.addEventListener('submit', (e) => this.handleLogin(e));
+    document.getElementById('registerForm')?.addEventListener('submit', (e) => this.handleRegister(e));
+
     document.getElementById('searchInput')?.addEventListener('input', (e) => {
       this.searchQuery = e.target.value.toLowerCase();
       this.renderTransactionsList();
@@ -127,7 +292,6 @@ class MyCostApp {
       });
     });
 
-    // Modals Open / Close
     document.getElementById('fabAddBtn')?.addEventListener('click', () => this.openTransactionModal());
     document.getElementById('openScanBtn')?.addEventListener('click', () => this.openScannerModal());
     document.getElementById('navAddBtn')?.addEventListener('click', () => this.openTransactionModal());
@@ -135,7 +299,6 @@ class MyCostApp {
     document.getElementById('exportDataBtn')?.addEventListener('click', () => this.exportToCSV());
     document.getElementById('dbStatusBtn')?.addEventListener('click', () => this.openDbStatusModal());
 
-    // Close buttons for modals
     document.querySelectorAll('.modal-overlay .close-btn').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         const modal = e.target.closest('.modal-overlay');
@@ -143,7 +306,6 @@ class MyCostApp {
       });
     });
 
-    // Close on overlay background click
     document.querySelectorAll('.modal-overlay').forEach((modal) => {
       modal.addEventListener('click', (e) => {
         if (e.target === modal) {
@@ -152,24 +314,15 @@ class MyCostApp {
       });
     });
 
-    // Form Type Switcher (Pemasukan vs Pengeluaran)
     document.getElementById('btnTypeExpense')?.addEventListener('click', () => this.setFormType('pengeluaran'));
     document.getElementById('btnTypeIncome')?.addEventListener('click', () => this.setFormType('pemasukan'));
-
-    // Transaction Form Submit
     document.getElementById('transactionForm')?.addEventListener('submit', (e) => this.handleFormSubmit(e));
-
-    // Delete Button in Modal
     document.getElementById('deleteTransBtn')?.addEventListener('click', () => this.handleDeleteTransaction());
-
-    // Scanner Controls
     document.getElementById('capturePhotoBtn')?.addEventListener('click', () => this.captureAndProcessScanner());
     document.getElementById('uploadReceiptInput')?.addEventListener('change', (e) => this.handleReceiptUploadInput(e));
+    document.getElementById('addItemBtn')?.addEventListener('click', () => this.addItemRow());
   }
 
-  // ----------------------------------------------------
-  // Month Controls
-  // ----------------------------------------------------
   changeMonth(direction) {
     const [year, month] = this.currentMonth.split('-').map(Number);
     const date = new Date(year, month - 1 + direction, 1);
@@ -190,21 +343,10 @@ class MyCostApp {
   // ----------------------------------------------------
   // API & Data Fetching
   // ----------------------------------------------------
-  getHeaders() {
-    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    const headers = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    };
-    if (token) {
-      headers['X-CSRF-TOKEN'] = token;
-    }
-    return headers;
-  }
-
   async fetchCategories() {
     try {
-      const res = await fetch('api/categories', { headers: this.getHeaders() });
+      const endpoint = this.getEndpoint('categories', 'api/categories.php');
+      const res = await fetch(endpoint, { headers: this.getHeaders() });
       const json = await res.json();
       if (json.status === 'success' && json.data) {
         this.categories = json.data;
@@ -212,19 +354,19 @@ class MyCostApp {
     } catch (e) {
       this.categories = {
         pengeluaran: [
-          { name: 'Makanan & Minuman', icon: 'fa-utensils', color: '#f59e0b' },
-          { name: 'Belanja', icon: 'fa-bag-shopping', color: '#ec4899' },
+          { name: 'Makanan & Minuman', icon: 'fa-utensils', color: '#10b981' },
+          { name: 'Belanja', icon: 'fa-bag-shopping', color: '#06b6d4' },
           { name: 'Transportasi', icon: 'fa-car', color: '#3b82f6' },
           { name: 'Tagihan & Utilitas', icon: 'fa-receipt', color: '#ef4444' },
-          { name: 'Hiburan', icon: 'fa-gamepad', color: '#8b5cf6' },
-          { name: 'Kesehatan', icon: 'fa-heart-pulse', color: '#10b981' },
-          { name: 'Lainnya', icon: 'fa-circle-question', color: '#6b7280' }
+          { name: 'Hiburan', icon: 'fa-gamepad', color: '#f59e0b' },
+          { name: 'Kesehatan', icon: 'fa-heart-pulse', color: '#14b8a6' },
+          { name: 'Lainnya', icon: 'fa-circle-question', color: '#64748b' }
         ],
         pemasukan: [
           { name: 'Gaji', icon: 'fa-money-bill-wave', color: '#10b981' },
           { name: 'Freelance', icon: 'fa-laptop-code', color: '#3b82f6' },
-          { name: 'Bisnis / Usaha', icon: 'fa-store', color: '#8b5cf6' },
-          { name: 'Lainnya', icon: 'fa-circle-question', color: '#6b7280' }
+          { name: 'Bisnis / Usaha', icon: 'fa-store', color: '#06b6d4' },
+          { name: 'Lainnya', icon: 'fa-circle-question', color: '#64748b' }
         ]
       };
     }
@@ -236,8 +378,8 @@ class MyCostApp {
     this.showLoading(true);
 
     try {
-      // 1. Fetch Stats for Selected Month
-      const statsRes = await fetch(`api/stats?month=${this.currentMonth}`, { headers: this.getHeaders() });
+      const statsUrl = this.getEndpoint(`stats?month=${this.currentMonth}`, `api/stats.php?month=${this.currentMonth}`);
+      const statsRes = await fetch(statsUrl, { headers: this.getHeaders() });
       if (statsRes.ok) {
         const statsJson = await statsRes.json();
         if (statsJson.status === 'success') {
@@ -247,8 +389,8 @@ class MyCostApp {
         }
       }
 
-      // 2. Fetch Transactions for Selected Month
-      const transRes = await fetch(`api/transactions?month=${this.currentMonth}`, { headers: this.getHeaders() });
+      const transUrl = this.getEndpoint(`transactions?month=${this.currentMonth}`, `api/transactions.php?month=${this.currentMonth}`);
+      const transRes = await fetch(transUrl, { headers: this.getHeaders() });
       if (transRes.ok) {
         const transJson = await transRes.json();
         if (transJson.status === 'success') {
@@ -355,6 +497,8 @@ class MyCostApp {
         year: 'numeric'
       });
 
+      const itemCount = item.items ? item.items.length : 0;
+
       return `
         <div class="trans-item" onclick="app.openEditTransactionModal(${item.id})">
           <div class="trans-left">
@@ -364,6 +508,7 @@ class MyCostApp {
             <div class="trans-details">
               <div class="trans-cat">
                 ${item.category}
+                ${itemCount > 0 ? `<span class="receipt-tag"><i class="fa-solid fa-list-check"></i> ${itemCount} Item</span>` : ''}
                 ${item.is_local_pending ? '<span class="receipt-tag"><i class="fa-solid fa-cloud-arrow-up"></i> Pending</span>' : ''}
               </div>
               <div class="trans-notes">${item.notes || '-'}</div>
@@ -372,6 +517,7 @@ class MyCostApp {
           </div>
           <div class="trans-right">
             <div class="trans-amount ${amtClass}">${sign} Rp ${Number(item.amount).toLocaleString('id-ID')}</div>
+            ${item.discount > 0 ? `<span style="font-size: 11px; color: var(--income);">Diskon: Rp ${Number(item.discount).toLocaleString('id-ID')}</span>` : ''}
             ${item.receipt_image_url ? `<span class="receipt-tag"><i class="fa-solid fa-image"></i> Nota</span>` : ''}
           </div>
         </div>
@@ -385,9 +531,6 @@ class MyCostApp {
     return found ? found.icon : 'fa-receipt';
   }
 
-  // ----------------------------------------------------
-  // Form & Category Grid Handling
-  // ----------------------------------------------------
   setFormType(type) {
     this.activeFormType = type;
     const btnExpense = document.getElementById('btnTypeExpense');
@@ -427,12 +570,100 @@ class MyCostApp {
   }
 
   // ----------------------------------------------------
+  // Itemized Receipt Rows Management
+  // ----------------------------------------------------
+  renderItemRows() {
+    const tbody = document.getElementById('itemsTableBody');
+    if (!tbody) return;
+
+    if (this.currentItems.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 10px;">Belum ada rincian barang. Klik "+ Tambah Item" jika ingin merinci.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = this.currentItems.map((item, idx) => `
+      <tr>
+        <td>
+          <input type="text" class="item-input" value="${item.item_name || ''}" placeholder="Nama barang" onchange="app.updateItemField(${idx}, 'item_name', this.value)">
+        </td>
+        <td style="width: 60px;">
+          <input type="number" class="item-input" value="${item.qty || 1}" min="1" step="any" onchange="app.updateItemField(${idx}, 'qty', this.value)">
+        </td>
+        <td style="width: 100px;">
+          <input type="number" class="item-input" value="${item.unit_price || 0}" min="0" step="any" onchange="app.updateItemField(${idx}, 'unit_price', this.value)">
+        </td>
+        <td style="width: 90px;">
+          <input type="number" class="item-input" value="${item.discount || 0}" min="0" step="any" onchange="app.updateItemField(${idx}, 'discount', this.value)">
+        </td>
+        <td style="width: 36px; text-align: center;">
+          <button type="button" class="delete-item-btn" onclick="app.deleteItemRow(${idx})"><i class="fa-solid fa-trash"></i></button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  addItemRow(initial = null) {
+    const newItem = initial || {
+      item_name: '',
+      qty: 1,
+      unit_price: 0,
+      discount: 0,
+      total_price: 0
+    };
+    this.currentItems.push(newItem);
+    this.renderItemRows();
+    this.recalculateTotalsFromItems();
+  }
+
+  deleteItemRow(index) {
+    this.currentItems.splice(index, 1);
+    this.renderItemRows();
+    this.recalculateTotalsFromItems();
+  }
+
+  updateItemField(index, field, value) {
+    if (!this.currentItems[index]) return;
+    if (field === 'qty' || field === 'unit_price' || field === 'discount') {
+      this.currentItems[index][field] = parseFloat(value) || 0;
+    } else {
+      this.currentItems[index][field] = value;
+    }
+    const it = this.currentItems[index];
+    it.total_price = Math.max(0, (it.qty * it.unit_price) - it.discount);
+    this.recalculateTotalsFromItems();
+  }
+
+  recalculateTotalsFromItems() {
+    if (this.currentItems.length === 0) return;
+
+    let subtotal = 0;
+    let totalDiscount = 0;
+
+    this.currentItems.forEach((it) => {
+      const q = it.qty || 1;
+      const p = it.unit_price || 0;
+      const d = it.discount || 0;
+      subtotal += (q * p);
+      totalDiscount += d;
+    });
+
+    const grandTotal = Math.max(0, subtotal - totalDiscount);
+
+    document.getElementById('transAmount').value = grandTotal;
+    const subtotalEl = document.getElementById('breakdownSubtotal');
+    const discountEl = document.getElementById('breakdownDiscount');
+    if (subtotalEl) subtotalEl.textContent = 'Rp ' + subtotal.toLocaleString('id-ID');
+    if (discountEl) discountEl.textContent = 'Rp ' + totalDiscount.toLocaleString('id-ID');
+  }
+
+  // ----------------------------------------------------
   // Transaction Modal (Add / Edit)
   // ----------------------------------------------------
   openTransactionModal(prefill = null) {
     this.editingTransactionId = null;
     this.receiptImageUrl = null;
     this.receiptBase64 = null;
+    this.currentItems = [];
 
     document.getElementById('modalTitle').textContent = 'Tambah Transaksi';
     document.getElementById('deleteTransBtn').style.display = 'none';
@@ -446,7 +677,16 @@ class MyCostApp {
       this.renderCategoryGrid();
     }
 
-    // Render OCR Candidates if available
+    // Prefill items from OCR
+    if (prefill?.items && prefill.items.length > 0) {
+      this.currentItems = prefill.items;
+      this.renderItemRows();
+      this.recalculateTotalsFromItems();
+    } else {
+      this.renderItemRows();
+    }
+
+    // OCR Candidates
     const candidateBox = document.getElementById('candidateAmountsBox');
     const candidateList = document.getElementById('candidateChipsList');
     if (candidateBox && candidateList) {
@@ -474,6 +714,7 @@ class MyCostApp {
     this.editingTransactionId = item.id;
     this.receiptImageUrl = item.receipt_image_url;
     this.receiptBase64 = null;
+    this.currentItems = item.items || [];
 
     document.getElementById('modalTitle').textContent = 'Edit Transaksi';
     document.getElementById('deleteTransBtn').style.display = 'block';
@@ -484,6 +725,10 @@ class MyCostApp {
     this.setFormType(item.type);
     this.activeCategoryId = item.category;
     this.renderCategoryGrid();
+    this.renderItemRows();
+
+    const candidateBox = document.getElementById('candidateAmountsBox');
+    if (candidateBox) candidateBox.style.display = 'none';
 
     this.openModal('transactionModal');
   }
@@ -500,13 +745,24 @@ class MyCostApp {
       return;
     }
 
+    // Compute subtotal & discount
+    let subtotal = amount;
+    let discount = 0;
+    if (this.currentItems.length > 0) {
+      subtotal = this.currentItems.reduce((acc, it) => acc + ((it.qty || 1) * (it.unit_price || 0)), 0);
+      discount = this.currentItems.reduce((acc, it) => acc + (it.discount || 0), 0);
+    }
+
     const payload = {
       type: this.activeFormType,
       amount: amount,
+      subtotal: subtotal,
+      discount: discount,
       category: this.activeCategoryId,
       transaction_date: date,
       notes: notes,
-      receipt_image_url: this.receiptImageUrl
+      receipt_image_url: this.receiptImageUrl,
+      items: this.currentItems
     };
 
     if (this.editingTransactionId) {
@@ -515,9 +771,12 @@ class MyCostApp {
 
     try {
       if (navigator.onLine) {
-        const url = this.editingTransactionId ? `api/transactions/${this.editingTransactionId}` : 'api/transactions';
+        const laravelUrl = this.editingTransactionId ? `transactions/${this.editingTransactionId}` : 'transactions';
+        const phpUrl = 'api/transactions.php';
+        const endpoint = this.getEndpoint(laravelUrl, phpUrl);
         const method = this.editingTransactionId ? 'PUT' : 'POST';
-        const res = await fetch(url, {
+
+        const res = await fetch(endpoint, {
           method: method,
           headers: this.getHeaders(),
           body: JSON.stringify(payload)
@@ -552,7 +811,11 @@ class MyCostApp {
 
     try {
       if (navigator.onLine) {
-        const res = await fetch(`api/transactions/${this.editingTransactionId}`, {
+        const laravelUrl = `transactions/${this.editingTransactionId}`;
+        const phpUrl = `api/transactions.php?id=${this.editingTransactionId}`;
+        const endpoint = this.getEndpoint(laravelUrl, phpUrl);
+
+        const res = await fetch(endpoint, {
           method: 'DELETE',
           headers: this.getHeaders()
         });
@@ -581,7 +844,7 @@ class MyCostApp {
     try {
       await receiptScanner.startCamera(video);
     } catch (err) {
-      console.warn('Direct camera start error, using file upload option:', err);
+      console.warn('Camera start:', err);
     }
   }
 
@@ -619,7 +882,8 @@ class MyCostApp {
         date: result.parsed.date,
         category: result.parsed.category,
         notes: result.parsed.notes,
-        candidates: result.parsed.candidates
+        candidates: result.parsed.candidates,
+        items: result.parsed.items || []
       });
 
       this.uploadReceiptPhotoBase64(imageSource);
@@ -664,7 +928,8 @@ class MyCostApp {
           date: result.parsed.date,
           category: result.parsed.category,
           notes: result.parsed.notes,
-          candidates: result.parsed.candidates
+          candidates: result.parsed.candidates,
+          items: result.parsed.items || []
         });
 
         this.uploadReceiptPhotoBase64(imageSource);
@@ -682,7 +947,8 @@ class MyCostApp {
   async uploadReceiptPhotoBase64(base64Data) {
     if (!navigator.onLine) return;
     try {
-      const res = await fetch('api/upload', {
+      const endpoint = this.getEndpoint('upload', 'api/upload.php');
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({ image_base64: base64Data })
@@ -713,7 +979,8 @@ class MyCostApp {
         .map((q) => q.data);
 
       if (itemsToSync.length > 0) {
-        const res = await fetch('api/transactions', {
+        const endpoint = this.getEndpoint('transactions', 'api/transactions.php');
+        const res = await fetch(endpoint, {
           method: 'POST',
           headers: this.getHeaders(),
           body: JSON.stringify({ sync: true, items: itemsToSync })
@@ -739,16 +1006,21 @@ class MyCostApp {
       return;
     }
 
-    const headers = ['ID', 'Tipe', 'Nominal (Rp)', 'Kategori', 'Tanggal', 'Catatan', 'Foto Nota'];
-    const rows = this.transactions.map((t) => [
-      t.id,
-      t.type,
-      t.amount,
-      `"${(t.category || '').replace(/"/g, '""')}"`,
-      t.transaction_date,
-      `"${(t.notes || '').replace(/"/g, '""')}"`,
-      t.receipt_image_url || ''
-    ]);
+    const headers = ['ID', 'Tipe', 'Nominal (Rp)', 'Subtotal', 'Diskon', 'Kategori', 'Tanggal', 'Catatan', 'Rincian Barang'];
+    const rows = this.transactions.map((t) => {
+      const itemDetails = (t.items || []).map((it) => `${it.item_name} (${it.qty}x @${it.unit_price})`).join('; ');
+      return [
+        t.id,
+        t.type,
+        t.amount,
+        t.subtotal || t.amount,
+        t.discount || 0,
+        `"${(t.category || '').replace(/"/g, '""')}"`,
+        t.transaction_date,
+        `"${(t.notes || '').replace(/"/g, '""')}"`,
+        `"${itemDetails.replace(/"/g, '""')}"`
+      ];
+    });
 
     const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + 
       [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
@@ -764,31 +1036,31 @@ class MyCostApp {
   }
 
   // ----------------------------------------------------
-  // DB Status / Setup Modal
+  // DB Status Modal
   // ----------------------------------------------------
   async openDbStatusModal() {
     this.openModal('dbStatusModal');
     const container = document.getElementById('dbStatusContent');
-    container.innerHTML = '<p><i class="fa-solid fa-spinner fa-spin"></i> Memeriksa koneksi database MySQL Laravel...</p>';
+    container.innerHTML = '<p><i class="fa-solid fa-spinner fa-spin"></i> Memeriksa koneksi database MySQL...</p>';
 
     try {
-      const res = await fetch('setup-check');
+      const endpoint = this.getEndpoint('../setup-check', 'api/setup.php');
+      const res = await fetch(endpoint);
       const json = await res.json();
       if (json.connected) {
         container.innerHTML = `
           <div style="text-align: center; padding: 10px;">
             <i class="fa-solid fa-circle-check" style="font-size: 48px; color: var(--income); margin-bottom: 12px;"></i>
-            <h3 style="margin-bottom: 8px;">Laravel & MySQL Terhubung!</h3>
-            <p style="color: var(--text-secondary); font-size: 14px;">Database: <strong>mycost_db</strong></p>
+            <h3 style="margin-bottom: 8px;">Database MySQL Terhubung!</h3>
             <p style="color: var(--text-secondary); font-size: 14px;">Total Transaksi: <strong>${json.total_transactions}</strong></p>
-            <p style="color: var(--income); font-size: 13px; margin-top: 8px;"><i class="fa-solid fa-shield-halved"></i> Eloquent ORM & REST API Aktif</p>
+            <p style="color: var(--income); font-size: 13px; margin-top: 8px;"><i class="fa-solid fa-shield-halved"></i> Multi-User & Itemized Data Aktif</p>
           </div>
         `;
       } else {
         container.innerHTML = `
           <div style="text-align: center; padding: 10px;">
             <i class="fa-solid fa-circle-exclamation" style="font-size: 48px; color: var(--expense); margin-bottom: 12px;"></i>
-            <h3 style="margin-bottom: 8px;">MySQL Belum Aktif</h3>
+            <h3 style="margin-bottom: 8px;">MySQL Belum Terhubung</h3>
             <p style="color: var(--text-secondary); font-size: 14px;">${json.message}</p>
           </div>
         `;
@@ -797,16 +1069,13 @@ class MyCostApp {
       container.innerHTML = `
         <div style="text-align: center; padding: 10px;">
           <i class="fa-solid fa-triangle-exclamation" style="font-size: 48px; color: var(--warning); margin-bottom: 12px;"></i>
-          <h3 style="margin-bottom: 8px;">Koneksi Gagal</h3>
-          <p style="color: var(--text-secondary); font-size: 14px;">Pastikan MySQL di Laragon aktif dan migrasi database sudah dijalankan.</p>
+          <h3 style="margin-bottom: 8px;">Status Offline</h3>
+          <p style="color: var(--text-secondary); font-size: 14px;">Aplikasi sedang beroperasi dalam mode offline (IndexedDB).</p>
         </div>
       `;
     }
   }
 
-  // ----------------------------------------------------
-  // UI Helpers (Modal & Toast)
-  // ----------------------------------------------------
   openModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) modal.classList.add('active');
@@ -858,7 +1127,6 @@ class MyCostApp {
   }
 }
 
-// Instantiate global app
 let app;
 document.addEventListener('DOMContentLoaded', () => {
   app = new MyCostApp();

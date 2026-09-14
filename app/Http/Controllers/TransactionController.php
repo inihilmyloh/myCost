@@ -3,17 +3,25 @@
 namespace App\Http\Controllers;
 
 use App\Models\Transaction;
+use App\Models\TransactionItem;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
 class TransactionController extends Controller
 {
+    private function getUserId(Request $request)
+    {
+        return $request->header('X-User-Id') ?: (Auth::id() ?: 1);
+    }
+
     /**
-     * Display a listing of transactions with filtering.
+     * Display a listing of transactions with filtering and items.
      */
     public function index(Request $request)
     {
-        $query = Transaction::query();
+        $userId = $this->getUserId($request);
+        $query = Transaction::with('items')->forUser($userId);
 
         // Filter by ID
         if ($request->filled('id')) {
@@ -24,22 +32,18 @@ class TransactionController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Transaksi tidak ditemukan'], 404);
         }
 
-        // Filter by Type
         if ($request->filled('type')) {
             $query->type($request->type);
         }
 
-        // Filter by Category
         if ($request->filled('category')) {
             $query->category($request->category);
         }
 
-        // Filter by Month (YYYY-MM)
         if ($request->filled('month')) {
             $query->month($request->month);
         }
 
-        // Filter by Date Range
         if ($request->filled('start_date')) {
             $query->where('transaction_date', '>=', $request->start_date);
         }
@@ -47,15 +51,12 @@ class TransactionController extends Controller
             $query->where('transaction_date', '<=', $request->end_date);
         }
 
-        // Search in notes or category
         if ($request->filled('search')) {
             $query->search($request->search);
         }
 
-        // Order by Date Desc, ID Desc
         $query->orderBy('transaction_date', 'desc')->orderBy('id', 'desc');
 
-        // Optional Pagination / Limit
         if ($request->filled('limit')) {
             $limit = max(1, (int)$request->limit);
             $transactions = $query->limit($limit)->get();
@@ -71,23 +72,44 @@ class TransactionController extends Controller
     }
 
     /**
-     * Store a newly created transaction or bulk sync items.
+     * Store a newly created transaction with line items.
      */
     public function store(Request $request)
     {
+        $userId = $this->getUserId($request);
+
         // Bulk Sync Mode
         if ($request->has('sync') && is_array($request->items)) {
             $synced = 0;
             foreach ($request->items as $item) {
                 if (!empty($item['type']) && !empty($item['amount']) && !empty($item['transaction_date'])) {
-                    Transaction::create([
+                    $trans = Transaction::create([
+                        'user_id' => $userId,
                         'type' => $item['type'] === 'pemasukan' ? 'pemasukan' : 'pengeluaran',
                         'amount' => (float)$item['amount'],
+                        'subtotal' => (float)($item['subtotal'] ?? $item['amount']),
+                        'discount' => (float)($item['discount'] ?? 0),
+                        'tax' => (float)($item['tax'] ?? 0),
                         'category' => !empty($item['category']) ? trim($item['category']) : 'Lainnya',
                         'transaction_date' => $item['transaction_date'],
                         'notes' => !empty($item['notes']) ? trim($item['notes']) : null,
                         'receipt_image_url' => !empty($item['receipt_image_url']) ? trim($item['receipt_image_url']) : null,
                     ]);
+
+                    if (!empty($item['items']) && is_array($item['items'])) {
+                        foreach ($item['items'] as $it) {
+                            if (!empty($it['item_name'])) {
+                                TransactionItem::create([
+                                    'transaction_id' => $trans->id,
+                                    'item_name' => trim($it['item_name']),
+                                    'qty' => (float)($it['qty'] ?? 1),
+                                    'unit_price' => (float)($it['unit_price'] ?? 0),
+                                    'discount' => (float)($it['discount'] ?? 0),
+                                    'total_price' => (float)($it['total_price'] ?? 0),
+                                ]);
+                            }
+                        }
+                    }
                     $synced++;
                 }
             }
@@ -99,7 +121,7 @@ class TransactionController extends Controller
             ], 201);
         }
 
-        // Single Transaction Validation
+        // Single Transaction
         $validator = Validator::make($request->all(), [
             'type' => 'required|in:pemasukan,pengeluaran',
             'amount' => 'required|numeric|min:1',
@@ -118,28 +140,49 @@ class TransactionController extends Controller
         }
 
         $transaction = Transaction::create([
+            'user_id' => $userId,
             'type' => $request->type,
             'amount' => (float)$request->amount,
+            'subtotal' => (float)($request->subtotal ?? $request->amount),
+            'discount' => (float)($request->discount ?? 0),
+            'tax' => (float)($request->tax ?? 0),
             'category' => $request->category ?: 'Lainnya',
             'transaction_date' => $request->transaction_date,
             'notes' => $request->notes,
             'receipt_image_url' => $request->receipt_image_url
         ]);
 
+        // Save Line Items
+        if ($request->has('items') && is_array($request->items)) {
+            foreach ($request->items as $it) {
+                if (!empty($it['item_name'])) {
+                    TransactionItem::create([
+                        'transaction_id' => $transaction->id,
+                        'item_name' => trim($it['item_name']),
+                        'qty' => (float)($it['qty'] ?? 1),
+                        'unit_price' => (float)($it['unit_price'] ?? 0),
+                        'discount' => (float)($it['discount'] ?? 0),
+                        'total_price' => (float)($it['total_price'] ?? 0),
+                    ]);
+                }
+            }
+        }
+
         return response()->json([
             'status' => 'success',
             'message' => 'Transaksi berhasil ditambahkan.',
-            'data' => $transaction
+            'data' => $transaction->load('items')
         ], 201);
     }
 
     /**
-     * Update an existing transaction.
+     * Update an existing transaction with items.
      */
     public function update(Request $request, $id = null)
     {
         $id = $id ?: $request->id;
-        $transaction = Transaction::find($id);
+        $userId = $this->getUserId($request);
+        $transaction = Transaction::forUser($userId)->find($id);
 
         if (!$transaction) {
             return response()->json(['status' => 'error', 'message' => 'Transaksi tidak ditemukan.'], 404);
@@ -155,40 +198,59 @@ class TransactionController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'status' => 'error',
-                'message' => $validator->errors()->first()
-            ], 422);
+            return response()->json(['status' => 'error', 'message' => $validator->errors()->first()], 422);
         }
 
         $transaction->update([
             'type' => $request->type,
             'amount' => (float)$request->amount,
+            'subtotal' => (float)($request->subtotal ?? $request->amount),
+            'discount' => (float)($request->discount ?? 0),
+            'tax' => (float)($request->tax ?? 0),
             'category' => $request->category ?: 'Lainnya',
             'transaction_date' => $request->transaction_date,
             'notes' => $request->notes,
             'receipt_image_url' => $request->receipt_image_url
         ]);
 
+        // Refresh line items if provided
+        if ($request->has('items') && is_array($request->items)) {
+            TransactionItem::where('transaction_id', $transaction->id)->delete();
+            foreach ($request->items as $it) {
+                if (!empty($it['item_name'])) {
+                    TransactionItem::create([
+                        'transaction_id' => $transaction->id,
+                        'item_name' => trim($it['item_name']),
+                        'qty' => (float)($it['qty'] ?? 1),
+                        'unit_price' => (float)($it['unit_price'] ?? 0),
+                        'discount' => (float)($it['discount'] ?? 0),
+                        'total_price' => (float)($it['total_price'] ?? 0),
+                    ]);
+                }
+            }
+        }
+
         return response()->json([
             'status' => 'success',
             'message' => 'Transaksi berhasil diperbarui.',
-            'data' => $transaction
+            'data' => $transaction->load('items')
         ]);
     }
 
     /**
-     * Remove the specified transaction.
+     * Remove transaction and its items.
      */
     public function destroy(Request $request, $id = null)
     {
         $id = $id ?: $request->id;
-        $transaction = Transaction::find($id);
+        $userId = $this->getUserId($request);
+        $transaction = Transaction::forUser($userId)->find($id);
 
         if (!$transaction) {
             return response()->json(['status' => 'error', 'message' => 'Transaksi tidak ditemukan atau sudah dihapus.'], 404);
         }
 
+        TransactionItem::where('transaction_id', $transaction->id)->delete();
         $transaction->delete();
 
         return response()->json([

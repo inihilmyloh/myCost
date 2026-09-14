@@ -8,7 +8,7 @@
 
   <!-- PWA Settings -->
   <link rel="manifest" href="{{ asset('manifest.json') }}">
-  <meta name="theme-color" content="#6366f1">
+  <meta name="theme-color" content="#10b981">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="myCost">
@@ -41,6 +41,12 @@
       </a>
 
       <div class="nav-actions">
+        <!-- User Profile Pill -->
+        <div id="userProfilePill" class="user-pill" title="Akun Pengguna">
+          <div id="userAvatar" class="user-avatar"><i class="fa-solid fa-user"></i></div>
+          <span id="userNameLabel" class="user-name-label">Login</span>
+        </div>
+
         <!-- Online/Offline Badge -->
         <div id="onlineStatusBadge" class="status-badge" title="Status Jaringan">
           <span class="status-dot"></span> Online
@@ -80,7 +86,7 @@
         </div>
 
         <div class="hero-stat-card">
-          <div class="stat-icon-wrap" style="color: #fb7185;">
+          <div class="stat-icon-wrap" style="color: #ef4444;">
             <i class="fa-solid fa-arrow-up-right"></i>
           </div>
           <div class="stat-info">
@@ -236,10 +242,50 @@
 
         <!-- Amount -->
         <div class="form-group">
-          <label class="form-label">Nominal (Rp)</label>
+          <label class="form-label">Total Transaksi (Rp)</label>
           <div class="input-icon-wrap">
             <span class="input-prefix">Rp</span>
             <input type="number" id="transAmount" class="form-control" placeholder="0" required min="1" step="any">
+          </div>
+        </div>
+
+        <!-- Itemized Receipt Breakdown Table -->
+        <div class="items-section">
+          <div class="items-header">
+            <div class="items-title">
+              <i class="fa-solid fa-list-check"></i> Rincian Barang / Struk
+            </div>
+            <button type="button" id="addItemBtn" class="add-item-btn">
+              <i class="fa-solid fa-plus"></i> Tambah Item
+            </button>
+          </div>
+
+          <div style="overflow-x: auto;">
+            <table class="items-table">
+              <thead>
+                <tr>
+                  <th>Nama Barang</th>
+                  <th style="width: 65px;">Qty</th>
+                  <th style="width: 100px;">Harga Satuan</th>
+                  <th style="width: 90px;">Diskon</th>
+                  <th style="width: 36px;"></th>
+                </tr>
+              </thead>
+              <tbody id="itemsTableBody">
+                <!-- Dynamic Item Rows -->
+              </tbody>
+            </table>
+          </div>
+
+          <div class="breakdown-summary">
+            <div class="breakdown-row">
+              <span style="color: var(--text-muted);">Subtotal Barang:</span>
+              <strong id="breakdownSubtotal">Rp 0</strong>
+            </div>
+            <div class="breakdown-row">
+              <span style="color: var(--income);">Total Diskon / Hemat:</span>
+              <strong id="breakdownDiscount" style="color: var(--income);">Rp 0</strong>
+            </div>
           </div>
         </div>
 
@@ -257,7 +303,7 @@
 
         <!-- Notes -->
         <div class="form-group">
-          <label class="form-label">Catatan / Deskripsi</label>
+          <label class="form-label">Catatan / Nama Toko</label>
           <input type="text" id="transNotes" class="form-control" placeholder="Contoh: Belanja Indomaret">
         </div>
 
@@ -323,6 +369,56 @@
       <div id="dbStatusContent" style="padding: 10px 0;">
         <p>Memeriksa koneksi database MySQL...</p>
       </div>
+    </div>
+  </div>
+
+  <!-- Modal 4: Authentication (Login / Register) -->
+  <div id="authModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title"><i class="fa-solid fa-user-lock"></i> Akun Pengguna</h3>
+        <button class="close-btn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <!-- Auth Tabs -->
+      <div class="auth-tabs">
+        <button type="button" id="tabLoginBtn" class="auth-tab-btn active">Masuk (Login)</button>
+        <button type="button" id="tabRegisterBtn" class="auth-tab-btn">Daftar Akun</button>
+      </div>
+
+      <!-- Login Form -->
+      <form id="loginForm">
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" id="loginEmail" class="form-control" placeholder="nama@email.com" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="btn-primary" style="margin-top: 16px;">
+          <i class="fa-solid fa-right-to-bracket"></i> Masuk Sekarang
+        </button>
+      </form>
+
+      <!-- Register Form -->
+      <form id="registerForm" style="display: none;">
+        <div class="form-group">
+          <label class="form-label">Nama Lengkap</label>
+          <input type="text" id="regName" class="form-control" placeholder="Budi Santoso" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" id="regEmail" class="form-control" placeholder="budi@email.com" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" id="regPassword" class="form-control" placeholder="Minimal 6 karakter" required minlength="6">
+        </div>
+        <button type="submit" class="btn-primary" style="margin-top: 16px;">
+          <i class="fa-solid fa-user-plus"></i> Buat Akun Baru
+        </button>
+      </form>
     </div>
   </div>
 
