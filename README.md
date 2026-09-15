@@ -67,22 +67,19 @@
 
 ### Langkah 1: Clone Repository
 ```bash
-git clone https://github.com/inihilmyloh/myCost.git
+git clone [https://github.com/inihilmyloh/myCost.git](https://github.com/inihilmyloh/myCost.git)
 cd myCost
-```
-
-### Langkah 2: Install Dependensi PHP
-```bash
+Langkah 2: Install Dependensi PHP
+Bash
 composer install
-```
+Langkah 3: Konfigurasi File Lingkungan (.env)
+Salin file .env.example menjadi .env:
 
-### Langkah 3: Konfigurasi File Lingkungan (`.env`)
-Salin file `.env.example` menjadi `.env`:
-```bash
+Bash
 copy .env.example .env
-```
-Buka file `.env` dan pastikan pengaturan database sesuai:
-```env
+Buka file .env dan pastikan pengaturan database sesuai:
+
+Cuplikan kode
 APP_NAME=myCost
 APP_URL=http://localhost:7777
 
@@ -92,55 +89,98 @@ DB_PORT=3306
 DB_DATABASE=mycost_db
 DB_USERNAME=root
 DB_PASSWORD=
-```
-
-### Langkah 4: Generate App Key
-```bash
+Langkah 4: Generate App Key
+Bash
 php artisan key:generate
-```
+Langkah 5: Buat Database & Jalankan Migrasi
+Buat database baru di MySQL bernama mycost_db (lewat HeidiSQL, phpMyAdmin, atau MySQL CLI).
 
-### Langkah 5: Buat Database & Jalankan Migrasi
-1. Buat database baru di MySQL bernama **`mycost_db`** (lewat HeidiSQL, phpMyAdmin, atau MySQL CLI).
-2. Jalankan perintah migrasi & seed data awal:
-```bash
+Jalankan perintah migrasi & seed data awal:
+
+Bash
 php artisan migrate --seed
-```
-
----
-
-## 🚀 Panduan Menjalankan Aplikasi
-
-### Cara 1: Menggunakan Skrip 1-Klik (Rekomendasi Windows)
+🚀 Panduan Menjalankan Aplikasi
+Cara 1: Menggunakan Skrip 1-Klik (Rekomendasi Windows)
 Cukup klik ganda salah satu file di root direktori proyek:
-* **`Buka-myCost-Background.vbs`** ➔ Menyalakan MySQL & Server di background (tanpa popup jendela hitam) dan otomatis membuka browser ke `http://localhost:7777`.
-* **`Buka-myCost.bat`** ➔ Menyalakan server dengan log konsol interaktif.
 
-> 💡 **Tips Otomatis Saat Booting Laptop:**  
-> Tekan `Windows + R`, ketik `shell:startup`, lalu buat *shortcut* dari `Buka-myCost-Background.vbs` ke dalam folder tersebut. myCost akan otomatis siap pakai setiap kali laptop Anda menyala!
+Buka-myCost-Background.vbs ➔ Menyalakan MySQL & Server di background (tanpa popup jendela hitam) dan otomatis membuka browser ke http://localhost:7777.
 
-### Cara 2: Menjalankan Manual via Terminal
-```bash
+Buka-myCost.bat ➔ Menyalakan server dengan log konsol interaktif.
+
+💡 Tips Otomatis Saat Booting Laptop:
+
+Tekan Windows + R, ketik shell:startup, lalu buat shortcut dari Buka-myCost-Background.vbs ke dalam folder tersebut. myCost akan otomatis siap pakai setiap kali laptop Anda menyala!
+
+Cara 2: Menjalankan Manual via Terminal
+Bash
 php artisan serve --host=0.0.0.0 --port=7777
-```
-Buka browser dan akses **`http://localhost:7777`** atau `http://127.0.0.1:7777`.
+Buka browser dan akses http://localhost:7777 atau http://127.0.0.1:7777.
 
----
+Cara 3: Membuat Perintah Kustom Terminal (cost & stopcost)
+Anda bisa mengatur agar aplikasi dapat dijalankan dan dimatikan (beserta otomatis menutup tab browsernya) langsung dari CMD/PowerShell.
 
-## 📱 Membuka dari HP (Jaringan Wi-Fi Lokal)
+1. Daftarkan Folder Command ke System Path:
 
-1. Pastikan laptop dan HP terhubung ke jaringan Wi-Fi yang sama.
-2. Cek alamat IP lokal laptop Anda (misal: `192.168.1.10` atau `172.16.100.242`) melalui perintah `ipconfig` di CMD.
-3. Buka browser di HP dan ketik:
-   ```text
-   http://[IP_LAPTOP_ANDA]:7777
-   ```
-4. Klik opsi browser **"Tambahkan ke Layar Utama" (Add to Home Screen)** untuk menginstal myCost sebagai aplikasi PWA.
+Buat folder baru, misalnya C:\MyCommands.
 
----
+Tekan tombol Windows, cari Environment Variables, lalu klik Edit the system environment variables.
 
-## 📁 Struktur Direktori Penting
+Pada bagian User variables, pilih variabel Path, klik Edit > New, lalu masukkan C:\MyCommands. Klik OK.
 
-```text
+2. Buat Perintah Start (cost.bat):
+
+Buka Notepad, lalu paste kode berikut (sesuaikan path jika berbeda):
+
+DOS
+@echo off
+wscript "D:\laragon\www\myCost\Buka-myCost-Background.vbs"
+Simpan di C:\MyCommands dengan nama cost.bat (Save as type: All Files).
+
+3. Buat Skrip Penutup & Tutup Tab Browser (Tutup-myCost.vbs):
+
+Buka Notepad, paste kode berikut:
+
+VBScript
+Set WshShell = CreateObject("WScript.Shell")
+
+' Matikan proses PHP dan MySQL di latar belakang
+WshShell.Run "cmd /c taskkill /F /IM php.exe /T", 0, True
+WshShell.Run "cmd /c taskkill /F /IM mysqld.exe /T", 0, True
+
+' Fokuskan ke jendela browser myCost dan tutup tab (Ctrl+W)
+Dim tabDitemukan
+tabDitemukan = WshShell.AppActivate("myCost - Pengelola") 
+
+If tabDitemukan Then
+    WScript.Sleep 300
+    WshShell.SendKeys "^w"
+End If
+Simpan file ini di folder root myCost Anda (contoh: D:\laragon\www\myCost\Tutup-myCost.vbs).
+
+4. Buat Perintah Stop (stopcost.bat):
+
+Buka Notepad lagi, paste kode berikut:
+
+DOS
+@echo off
+wscript "D:\laragon\www\myCost\Tutup-myCost.vbs"
+Simpan di C:\MyCommands dengan nama stopcost.bat (Save as type: All Files).
+
+🎉 Selesai! Sekarang Anda cukup mengetik cost di terminal untuk menyalakan myCost, dan stopcost untuk mematikan server sekaligus menutup tab browser secara otomatis.
+
+📱 Membuka dari HP (Jaringan Wi-Fi Lokal)
+Pastikan laptop dan HP terhubung ke jaringan Wi-Fi yang sama.
+
+Cek alamat IP lokal laptop Anda (misal: 192.168.1.10 atau 172.16.100.242) melalui perintah ipconfig di CMD.
+
+Buka browser di HP dan ketik:
+
+Plaintext
+http://[IP_LAPTOP_ANDA]:7777
+Klik opsi browser "Tambahkan ke Layar Utama" (Add to Home Screen) untuk menginstal myCost sebagai aplikasi PWA.
+
+📁 Struktur Direktori Penting
+Plaintext
 myCost/
 ├── app/
 │   ├── Http/Controllers/
@@ -172,18 +212,14 @@ myCost/
 │   └── app.blade.php                   # Single Page Interface View
 ├── Buka-myCost.bat                     # Windows Quick Launcher
 ├── Buka-myCost-Background.vbs          # Windows Silent Startup Launcher
+├── Tutup-myCost.vbs                    # Skrip Penutup Server & Tab Browser
 └── routes/
     ├── api.php                         # REST API Endpoints
     └── web.php                         # Web Routes
-```
+🛡️ Keamanan & Privasi
+Seluruh data transaksi, mutasi rekening, dan gambar struk disimpan 100% di komputer/server lokal Anda (mycost_db).
 
----
+Tidak ada pelacak pihak ketiga atau pengiriman data keuangan ke cloud luar.
 
-## 🛡️ Keamanan & Privasi
-* Seluruh data transaksi, mutasi rekening, dan gambar struk disimpan **100% di komputer/server lokal Anda** (`mycost_db`).
-* Tidak ada pelacak pihak ketiga atau pengiriman data keuangan ke cloud luar.
-
----
-
-## 📄 Lisensi
-Aplikasi ini bersifat open-source di bawah lisensi [MIT License](LICENSE).
+📄 Lisensi
+Aplikasi ini bersifat open-source di bawah lisensi MIT License.
