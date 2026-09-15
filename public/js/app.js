@@ -1085,9 +1085,9 @@ class MyCostApp {
 
     this.renderAccountSelectOptions();
 
-    // Auto-select account if matched by name (e.g. GoPay / BCA)
-    if (prefill?.account_type || prefill?.notes) {
-      const hint = (prefill?.account_type || prefill?.notes || '').toLowerCase();
+    // Auto-select account if matched by name (e.g. Seabank / GoPay / BCA)
+    if (prefill?.account_type || prefill?.notes || prefill?.account_hint) {
+      const hint = `${prefill?.account_hint || ''} ${prefill?.account_type || ''} ${prefill?.notes || ''}`.toLowerCase();
       const matchedAcc = this.accounts.find((a) => hint.includes(a.name.toLowerCase()) || hint.includes(a.type.toLowerCase()));
       if (matchedAcc) {
         const sel = document.getElementById('transAccountSelect');
@@ -1283,6 +1283,7 @@ class MyCostApp {
         category: result.category || 'Belanja',
         date: result.transaction_date || new Date().toISOString().split('T')[0],
         notes: result.notes || (result.store_name ? `Belanja di ${result.store_name}` : 'Belanja Struk OCR'),
+        account_hint: result.account_hint || '',
         items: result.items || [],
         candidates: result.all_detected_numbers || []
       });
@@ -1319,6 +1320,7 @@ class MyCostApp {
           category: result.category || 'Belanja',
           date: result.transaction_date || new Date().toISOString().split('T')[0],
           notes: result.notes || (result.store_name ? `Belanja di ${result.store_name}` : 'Belanja Struk OCR'),
+          account_hint: result.account_hint || '',
           items: result.items || [],
           candidates: result.all_detected_numbers || []
         });
