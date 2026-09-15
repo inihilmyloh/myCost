@@ -1,85 +1,118 @@
 <p align="center">
-  <img src="public/icons/icon.svg" width="100" height="100" alt="myCost Logo">
+  <img src="public/icons/icon.svg" width="110" height="110" alt="myCost Logo">
 </p>
 
-<h1 align="center">myCost — Pengelola Keuangan Pribadi & Pemindai Nota OCR</h1>
+<h1 align="center">myCost</h1>
 
 <p align="center">
-  Aplikasi Manajemen Keuangan Pribadi Mandiri (Self-Hosted) Terinspirasi dari <strong>Firefly III</strong> dengan Tampilan Modern <strong>Emerald Green</strong>, Fitur Multi-Rekening, Anggaran Bulanan, Celengan Impian, serta Pemindai Nota Pintar (OCR) Berjalan 100% Lokal.
+  <strong>Pengelola Keuangan Pribadi Mandiri & Pemindai Nota Pintar (OCR)</strong>
+</p>
+
+<p align="center">
+  Aplikasi Manajemen Keuangan Pribadi Mandiri (<em>Self-Hosted</em>) terinspirasi dari <strong>Firefly III</strong> dengan tampilan modern <strong>Emerald Green</strong>, fitur Multi-Rekening, Anggaran Bulanan, Celengan Impian, serta Pemindai Nota Pintar (OCR) yang berjalan 100% lokal di browser Anda.
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Laravel-12.x-FF2D20?style=for-the-badge&logo=laravel&logoColor=white" alt="Laravel">
+  <img src="https://img.shields.io/badge/PHP-8.2+-777BB4?style=for-the-badge&logo=php&logoColor=white" alt="PHP">
   <img src="https://img.shields.io/badge/MySQL-8.0-4479A1?style=for-the-badge&logo=mysql&logoColor=white" alt="MySQL">
   <img src="https://img.shields.io/badge/PWA-Ready-10b981?style=for-the-badge&logo=pwa&logoColor=white" alt="PWA">
   <img src="https://img.shields.io/badge/OCR-Tesseract.js-34d399?style=for-the-badge" alt="OCR">
   <img src="https://img.shields.io/badge/Theme-Emerald%20Dark-059669?style=for-the-badge" alt="Emerald Theme">
+  <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License">
 </p>
+
+---
+
+## 📑 Daftar Isi
+
+- [🌟 Fitur Utama](#-fitur-utama)
+- [💻 Kebutuhan Sistem](#-kebutuhan-sistem)
+- [🛠️ Panduan Instalasi](#️-panduan-instalasi)
+- [🚀 Panduan Menjalankan Aplikasi](#-panduan-menjalankan-aplikasi)
+  - [Cara 1: Launcher 1-Klik Windows](#cara-1-menggunakan-skrip-1-klik-rekomendasi-windows)
+  - [Cara 2: Manual via Terminal](#cara-2-menjalankan-manual-via-terminal)
+  - [Cara 3: Perintah Kustom Terminal (`cost` & `stopcost`)](#cara-3-membuat-perintah-kustom-terminal-cost--stopcost)
+- [📱 Akses dari Smartphone (PWA)](#-membuka-dari-hp-jaringan-wi-fi-lokal)
+- [📁 Struktur Direktori](#-struktur-direktori-penting)
+- [🛡️ Keamanan & Privasi](#️-keamanan--privasi)
+- [📄 Lisensi](#-lisensi)
 
 ---
 
 ## 🌟 Fitur Utama
 
-### 1. 💼 Multi-Rekening & Dompet (Firefly III Inspired)
-* Kelola berbagai jenis rekening: **Kas Tunai / Dompet**, **Rekening Bank (BCA, Mandiri, BRI, dll.)**, **E-Wallet (GoPay, OVO, ShopeePay, DANA)**, dan **Pos Investasi**.
-* **Mutasi Saldo Otomatis & Real-time**:
-  * **Pemasukan:** Menambah (+) saldo rekening terkait.
-  * **Pengeluaran:** Mengurangi (-) saldo rekening terkait.
-  * **Transfer Antar Rekening:** Otomatis memotong rekening asal dan menambah rekening tujuan.
-  * **Rollback Aman:** Mengedit atau menghapus transaksi otomatis menyesuaikan saldo ke kondisi semula tanpa risiko selisih.
+### 1. 💼 Multi-Rekening & Dompet (*Firefly III Inspired*)
+- Kelola berbagai kategori aset: **Kas Tunai / Dompet**, **Rekening Bank (BCA, Mandiri, BRI, dll.)**, **E-Wallet (GoPay, OVO, ShopeePay, DANA)**, dan **Pos Investasi**.
+- **Mutasi Saldo Otomatis & Real-time**:
+  - 🟢 **Pemasukan:** Menambah (+) saldo rekening terkait secara instan.
+  - 🔴 **Pengeluaran:** Mengurangi (-) saldo rekening terkait.
+  - 🔄 **Transfer Antar Rekening:** Otomatis memotong rekening asal dan menambah rekening tujuan.
+  - 🛡️ **Rollback Aman:** Edit atau hapus transaksi akan menyesuaikan saldo kembali ke kondisi semula tanpa risiko selisih.
 
-### 2. 🧾 Pemindai Nota Pintar (Universal OCR Scanner)
-* Menggunakan **Tesseract.js** yang berjalan 100% di browser / lokal tanpa mengirim data privasi ke server luar.
-* Mendukung berbagai format nota:
-  * **Minimarket / Retail (Indomaret, Alfamart):** Mendeteksi pola kuantitas x harga satuan dan diskon per item.
-  * **Faktur / Invoice Usaha (B2B):** Mendeteksi rincian item, nomor urut, subtotal, dan diskon faktur.
-  * **Restoran & Kafe (POS):** Mendeteksi nama menu, modifier (*level pedas, topping*), PB1/Pajak resto, dan biaya layanan.
-  * **E-Wallet / Transfer Singkat (GoPay, QRIS):** Deteksi total bayar dengan pembersihan otomatis.
-* **Camera Selector:** Otomatis memfilter sensor IR Windows Hello dan memprioritaskan webcam RGB laptop maupun kamera HP.
+### 2. 🧾 Pemindai Nota Pintar (*Universal OCR Scanner*)
+- Menggunakan **Tesseract.js** yang dieksekusi 100% di browser lokal tanpa mengirim data privasi ke server luar / cloud.
+- **Mendukung Berbagai Format Struk/Nota:**
+  - **Minimarket & Retail (Indomaret, Alfamart):** Ekstraksi kuantitas, harga satuan, dan diskon per item.
+  - **Faktur / Invoice Usaha (B2B):** Deteksi rincian item, nomor urut, subtotal, dan diskon faktur.
+  - **Restoran & Kafe (POS):** Deteksi nama menu, level/topping, PB1/pajak resto, dan service charge.
+  - **E-Wallet / Bukti Transfer (GoPay, QRIS):** Deteksi total bayar dengan pembersihan karakter otomatis.
+- **Camera Selector:** Otomatis memfilter sensor IR Windows Hello dan memprioritaskan kamera RGB laptop atau kamera HP.
 
-### 3. ⚖️ Anggaran Bulanan (Budgets)
-* Tetapkan limit anggaran pengeluaran per kategori (Makanan, Belanja, Transportasi, dll.).
-* Progress bar interaktif dengan indikator warna (*Aman*, *Peringatan >75%*, *Bahaya / Over Budget >90%*).
+### 3. ⚖️ Anggaran Bulanan (*Budgets*)
+- Tetapkan batasan anggaran pengeluaran per kategori (Makanan, Belanja, Transportasi, Hiburan, dll.).
+- Progress bar interaktif dengan indikator visual dinamis:
+  - 🟢 **Aman** (< 75%)
+  - 🟡 **Peringatan** (75% - 90%)
+  - 🔴 **Bahaya / Over Budget** (> 90%)
 
-### 4. 🐷 Celengan & Target Tabungan (Piggy Banks)
-* Pasang target tabungan untuk barang impian atau dana darurat.
-* Tombol aksi cepat **Nabung (+)** atau **Tarik (-)** langsung dari kartu celengan.
+### 4. 🐷 Celengan & Target Tabungan (*Piggy Banks*)
+- Buat target tabungan untuk impian atau dana darurat dengan progress bar pencapaian.
+- Aksi instan: tombol cepat **Nabung (+)** atau **Tarik (-)** langsung dari kartu celengan.
 
 ### 5. 📱 PWA & Akses Multi-Device Lokal
-* Pasang aplikasi langsung ke layar utama HP atau desktop Windows via Progressive Web App (PWA).
-* Akses via jaringan Wi-Fi lokal rumah/kantor tanpa internet.
+- Pasang aplikasi langsung ke layar utama HP (Android/iOS) atau desktop Windows via Progressive Web App (PWA).
+- Akses cepat via jaringan Wi-Fi lokal rumah/kantor tanpa butuh koneksi internet publik.
 
 ### 6. ⚡ 1-Click Auto-Start Launcher
-* Dilengkapi skrip **`Buka-myCost.bat`** dan **`Buka-myCost-Background.vbs`** yang otomatis memeriksa & menyalakan database MySQL Laragon serta server Laravel di port **7777** secara instan.
+- Dilengkapi skrip Windows **`Buka-myCost.bat`** dan **`Buka-myCost-Background.vbs`** untuk menyalakan MySQL Laragon & server Laravel di port **7777** dalam sekali klik.
 
 ---
 
-## 💻 Kebutuhan Sistem (Prerequisites)
+## 💻 Kebutuhan Sistem
 
-* **PHP:** Versi 8.2 atau lebih tinggi (Ekstensi `pdo_mysql`, `mbstring`, `openssl`, `fileinfo` aktif).
-* **Database:** MySQL 8.0+ / MariaDB (Direkomendasikan menggunakan **Laragon** atau **XAMPP**).
-* **Composer:** Versi 2.x+.
-* **Browser:** Google Chrome, Microsoft Edge, Firefox, atau Safari versi modern.
+| Komponen | Spesifikasi Minimum | Catatan |
+| :--- | :--- | :--- |
+| **PHP** | 8.2 atau lebih tinggi | Ekstensi `pdo_mysql`, `mbstring`, `openssl`, `fileinfo` aktif |
+| **Database** | MySQL 8.0+ / MariaDB | Direkomendasikan menggunakan **Laragon** atau **XAMPP** |
+| **Composer** | 2.x+ | Pengelola dependensi PHP |
+| **Web Browser** | Google Chrome, Edge, Safari, Firefox | Versi modern dengan dukungan WebAssembly & Camera API |
 
 ---
 
-## 🛠️ Panduan Instalasi (Setup Guide)
+## 🛠️ Panduan Instalasi
 
-### Langkah 1: Clone Repository
+Ikuti langkah-langkah berikut untuk memasang **myCost** di komputer lokal Anda:
+
+### 1. Clone Repository
 ```bash
-git clone [https://github.com/inihilmyloh/myCost.git](https://github.com/inihilmyloh/myCost.git)
+git clone https://github.com/inihilmyloh/myCost.git
 cd myCost
-Langkah 2: Install Dependensi PHP
-Bash
+```
+
+### 2. Install Dependensi PHP
+```bash
 composer install
-Langkah 3: Konfigurasi File Lingkungan (.env)
-Salin file .env.example menjadi .env:
+```
 
-Bash
+### 3. Konfigurasi File Environment (`.env`)
+Salin file `.env.example` menjadi `.env`:
+```bash
 copy .env.example .env
-Buka file .env dan pastikan pengaturan database sesuai:
+```
 
-Cuplikan kode
+Buka file `.env` dan sesuaikan konfigurasi database Anda:
+```ini
 APP_NAME=myCost
 APP_URL=http://localhost:7777
 
@@ -89,58 +122,62 @@ DB_PORT=3306
 DB_DATABASE=mycost_db
 DB_USERNAME=root
 DB_PASSWORD=
-Langkah 4: Generate App Key
-Bash
+```
+
+### 4. Generate Application Key
+```bash
 php artisan key:generate
-Langkah 5: Buat Database & Jalankan Migrasi
-Buat database baru di MySQL bernama mycost_db (lewat HeidiSQL, phpMyAdmin, atau MySQL CLI).
+```
 
-Jalankan perintah migrasi & seed data awal:
-
-Bash
+### 5. Buat Database & Jalankan Migrasi
+Buat database baru bernama `mycost_db` di MySQL (lewat HeidiSQL, phpMyAdmin, atau MySQL CLI), lalu jalankan migrasi & data awal:
+```bash
 php artisan migrate --seed
-🚀 Panduan Menjalankan Aplikasi
-Cara 1: Menggunakan Skrip 1-Klik (Rekomendasi Windows)
-Cukup klik ganda salah satu file di root direktori proyek:
+```
 
-Buka-myCost-Background.vbs ➔ Menyalakan MySQL & Server di background (tanpa popup jendela hitam) dan otomatis membuka browser ke http://localhost:7777.
+---
 
-Buka-myCost.bat ➔ Menyalakan server dengan log konsol interaktif.
+## 🚀 Panduan Menjalankan Aplikasi
 
-💡 Tips Otomatis Saat Booting Laptop:
+### Cara 1: Menggunakan Skrip 1-Klik (Rekomendasi Windows)
+Cukup klik ganda salah satu file di folder root proyek:
 
-Tekan Windows + R, ketik shell:startup, lalu buat shortcut dari Buka-myCost-Background.vbs ke dalam folder tersebut. myCost akan otomatis siap pakai setiap kali laptop Anda menyala!
+- **`Buka-myCost-Background.vbs`** ➔ Menyalakan MySQL & Server di latar belakang (*silent / tanpa jendela hitam*) dan otomatis membuka browser ke `http://localhost:7777`.
+- **`Buka-myCost.bat`** ➔ Menyalakan server dengan jendela konsol interaktif.
 
-Cara 2: Menjalankan Manual via Terminal
-Bash
+> [!TIP]
+> **Otomatis Berjalan Saat Booting Windows:**
+> Tekan <kbd>Win</kbd> + <kbd>R</kbd>, ketik `shell:startup`, lalu buat *shortcut* dari file `Buka-myCost-Background.vbs` ke dalam folder tersebut. myCost akan otomatis menyala setiap kali komputer dinyalakan!
+
+---
+
+### Cara 2: Menjalankan Manual via Terminal
+Jalankan perintah berikut di folder proyek:
+```bash
 php artisan serve --host=0.0.0.0 --port=7777
-Buka browser dan akses http://localhost:7777 atau http://127.0.0.1:7777.
+```
+Buka browser dan kunjungi: **[http://localhost:7777](http://localhost:7777)** atau **[http://127.0.0.1:7777](http://127.0.0.1:7777)**.
 
-Cara 3: Membuat Perintah Kustom Terminal (cost & stopcost)
-Anda bisa mengatur agar aplikasi dapat dijalankan dan dimatikan (beserta otomatis menutup tab browsernya) langsung dari CMD/PowerShell.
+---
 
-1. Daftarkan Folder Command ke System Path:
+### Cara 3: Membuat Perintah Kustom Terminal (`cost` & `stopcost`)
+Anda dapat menyalakan dan mematikan aplikasi (beserta otomatis menutup tab browsernya) langsung dari CMD / PowerShell kapan saja.
 
-Buat folder baru, misalnya C:\MyCommands.
+#### 1. Daftarkan Folder Command ke System Path:
+1. Buat folder baru, misalnya `C:\MyCommands`.
+2. Tekan tombol <kbd>Windows</kbd>, ketik **Environment Variables**, pilih **Edit the system environment variables**.
+3. Di bagian **User variables**, pilih **Path** > **Edit** > **New**, lalu masukkan `C:\MyCommands`. Klik **OK**.
 
-Tekan tombol Windows, cari Environment Variables, lalu klik Edit the system environment variables.
-
-Pada bagian User variables, pilih variabel Path, klik Edit > New, lalu masukkan C:\MyCommands. Klik OK.
-
-2. Buat Perintah Start (cost.bat):
-
-Buka Notepad, lalu paste kode berikut (sesuaikan path jika berbeda):
-
-DOS
+#### 2. Buat Perintah Start (`cost.bat`):
+Buat file baru di `C:\MyCommands\cost.bat` dengan isi:
+```bat
 @echo off
 wscript "D:\laragon\www\myCost\Buka-myCost-Background.vbs"
-Simpan di C:\MyCommands dengan nama cost.bat (Save as type: All Files).
+```
 
-3. Buat Skrip Penutup & Tutup Tab Browser (Tutup-myCost.vbs):
-
-Buka Notepad, paste kode berikut:
-
-VBScript
+#### 3. Buat Skrip Penutup & Tutup Tab Browser (`Tutup-myCost.vbs`):
+Pastikan file `Tutup-myCost.vbs` di root proyek Anda berisi skrip berikut:
+```vbscript
 Set WshShell = CreateObject("WScript.Shell")
 
 ' Matikan proses PHP dan MySQL di latar belakang
@@ -155,32 +192,36 @@ If tabDitemukan Then
     WScript.Sleep 300
     WshShell.SendKeys "^w"
 End If
-Simpan file ini di folder root myCost Anda (contoh: D:\laragon\www\myCost\Tutup-myCost.vbs).
+```
 
-4. Buat Perintah Stop (stopcost.bat):
-
-Buka Notepad lagi, paste kode berikut:
-
-DOS
+#### 4. Buat Perintah Stop (`stopcost.bat`):
+Buat file baru di `C:\MyCommands\stopcost.bat` dengan isi:
+```bat
 @echo off
 wscript "D:\laragon\www\myCost\Tutup-myCost.vbs"
-Simpan di C:\MyCommands dengan nama stopcost.bat (Save as type: All Files).
+```
 
-🎉 Selesai! Sekarang Anda cukup mengetik cost di terminal untuk menyalakan myCost, dan stopcost untuk mematikan server sekaligus menutup tab browser secara otomatis.
+🎉 **Selesai!** Sekarang cukup ketik:
+- `cost` untuk menyalakan myCost secara instan.
+- `stopcost` untuk mematikan server dan menutup tab browser secara otomatis.
 
-📱 Membuka dari HP (Jaringan Wi-Fi Lokal)
-Pastikan laptop dan HP terhubung ke jaringan Wi-Fi yang sama.
+---
 
-Cek alamat IP lokal laptop Anda (misal: 192.168.1.10 atau 172.16.100.242) melalui perintah ipconfig di CMD.
+## 📱 Membuka dari HP (Jaringan Wi-Fi Lokal)
 
-Buka browser di HP dan ketik:
+1. Pastikan laptop dan smartphone terhubung ke jaringan Wi-Fi lokal yang sama.
+2. Cek alamat IP lokal laptop Anda melalui perintah `ipconfig` di CMD (contoh: `192.168.1.10`).
+3. Buka browser smartphone dan kunjungi:
+   ```text
+   http://[IP_LAPTOP_ANDA]:7777
+   ```
+4. Klik opsi browser **"Tambahkan ke Layar Utama" / "Add to Home Screen"** untuk menginstal myCost sebagai aplikasi PWA mandiri.
 
-Plaintext
-http://[IP_LAPTOP_ANDA]:7777
-Klik opsi browser "Tambahkan ke Layar Utama" (Add to Home Screen) untuk menginstal myCost sebagai aplikasi PWA.
+---
 
-📁 Struktur Direktori Penting
-Plaintext
+## 📁 Struktur Direktori Penting
+
+```plaintext
 myCost/
 ├── app/
 │   ├── Http/Controllers/
@@ -192,34 +233,42 @@ myCost/
 │   │   ├── StatsController.php         # Analytics & Dashboard Summary
 │   │   └── TransactionController.php   # CRUD Transaksi & Mutasi Saldo
 │   └── Models/
-│       ├── Account.php
-│       ├── Budget.php
-│       ├── PiggyBank.php
-│       ├── Transaction.php
-│       └── TransactionItem.php
+│       ├── Account.php                 # Model Rekening
+│       ├── Budget.php                  # Model Anggaran
+│       ├── PiggyBank.php               # Model Celengan
+│       ├── Transaction.php             # Model Transaksi
+│       └── TransactionItem.php         # Model Item Rincian Transaksi
 ├── database/
 │   ├── migrations/                     # Skema Database MySQL
-│   └── seeders/DatabaseSeeder.php      # Seeder Akun Utama (Izlude)
+│   └── seeders/DatabaseSeeder.php      # Seeder Akun & Data Awal
 ├── public/
 │   ├── css/style.css                   # Desain Modern Emerald Green
 │   ├── js/
 │   │   ├── app.js                      # Core Frontend Logic & PWA State
 │   │   ├── charts.js                   # Visualisasi Chart.js
 │   │   └── ocr.js                      # Engine Scanner Tesseract.js Universal
-│   ├── manifest.json                   # Konfigurasi PWA
-│   └── sw.js                           # Service Worker Offline Cache
+│   ├── manifest.json                   # Konfigurasi Web App Manifest PWA
+│   └── sw.js                           # Service Worker & Offline Cache
 ├── resources/views/
 │   └── app.blade.php                   # Single Page Interface View
-├── Buka-myCost.bat                     # Windows Quick Launcher
+├── Buka-myCost.bat                     # Windows Quick Launcher (Console)
 ├── Buka-myCost-Background.vbs          # Windows Silent Startup Launcher
 ├── Tutup-myCost.vbs                    # Skrip Penutup Server & Tab Browser
 └── routes/
     ├── api.php                         # REST API Endpoints
     └── web.php                         # Web Routes
-🛡️ Keamanan & Privasi
-Seluruh data transaksi, mutasi rekening, dan gambar struk disimpan 100% di komputer/server lokal Anda (mycost_db).
+```
 
-Tidak ada pelacak pihak ketiga atau pengiriman data keuangan ke cloud luar.
+---
 
-📄 Lisensi
-Aplikasi ini bersifat open-source di bawah lisensi MIT License.
+## 🛡️ Keamanan & Privasi
+
+- **100% Data Lokal**: Seluruh data transaksi, mutasi rekening, dan gambar struk tersimpan aman di database komputer lokal Anda (`mycost_db`).
+- **Tanpa Pihak Ketiga**: Tidak ada analitik pelacak pihak ketiga atau pengiriman data sensitif ke cloud eksternal.
+- **OCR di Sisi Klien**: Pemrosesan gambar nota diproses langsung oleh engine Tesseract.js di dalam browser Anda.
+
+---
+
+## 📄 Lisensi
+
+Proyek ini didistribusikan di bawah lisensi **[MIT License](LICENSE)**. Bebas digunakan dan dimodifikasi untuk kebutuhan pribadi maupun pengembangan mandiri.
