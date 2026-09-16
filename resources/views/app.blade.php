@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id" data-theme="dark">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -18,12 +19,15 @@
   <!-- Fonts & Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
   <!-- Core Styles -->
   <link rel="stylesheet" href="{{ asset('css/style.css') }}?v=5.0">
 </head>
+
 <body>
 
   <!-- Toast Container -->
@@ -67,7 +71,8 @@
     <!-- Guest Alert Banner (Visible when not logged in) -->
     <div id="guestBanner" class="guest-banner" style="display: none;">
       <i class="fa-solid fa-user-lock"></i>
-      <span>Anda belum login. <strong>Klik di sini untuk Masuk atau Buat Akun</strong> agar data keuangan Anda tersimpan aman.</span>
+      <span>Anda belum login. <strong>Klik di sini untuk Masuk atau Buat Akun</strong> agar data keuangan Anda tersimpan
+        aman.</span>
       <i class="fa-solid fa-chevron-right"></i>
     </div>
 
@@ -188,7 +193,8 @@
             <div class="filter-container">
               <div class="search-input-wrap">
                 <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" id="searchInput" class="search-input" placeholder="Cari transaksi, toko, atau kategori...">
+                <input type="text" id="searchInput" class="search-input"
+                  placeholder="Cari transaksi, toko, atau kategori...">
               </div>
 
               <div class="filter-chips">
@@ -221,9 +227,11 @@
         <div class="card-header">
           <div>
             <h2 class="card-title"><i class="fa-solid fa-wallet"></i> Daftar Rekening & Dompet</h2>
-            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Kelola kas tunai, rekening bank, e-wallet, dan pos investasi Anda ala Firefly III.</p>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Kelola kas tunai, rekening bank,
+              e-wallet, dan pos investasi Anda.</p>
           </div>
-          <button type="button" class="btn-primary" style="width: auto; padding: 10px 18px; font-size: 13px;" onclick="app.openAccountModal()">
+          <button type="button" class="btn-primary" style="width: auto; padding: 10px 18px; font-size: 13px;"
+            onclick="app.openAccountModal()">
             <i class="fa-solid fa-plus"></i> Tambah Rekening
           </button>
         </div>
@@ -242,9 +250,11 @@
         <div class="card-header">
           <div>
             <h2 class="card-title"><i class="fa-solid fa-scale-balanced"></i> Anggaran Bulanan per Kategori</h2>
-            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Tetapkan limit pengeluaran bulanan agar keuangan tetap terkendali.</p>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Tetapkan limit pengeluaran bulanan
+              agar keuangan tetap terkendali.</p>
           </div>
-          <button type="button" class="btn-primary" style="width: auto; padding: 10px 18px; font-size: 13px;" onclick="app.openBudgetModal()">
+          <button type="button" class="btn-primary" style="width: auto; padding: 10px 18px; font-size: 13px;"
+            onclick="app.openBudgetModal()">
             <i class="fa-solid fa-plus"></i> Pasang Anggaran
           </button>
         </div>
@@ -264,9 +274,11 @@
         <div class="card-header">
           <div>
             <h2 class="card-title"><i class="fa-solid fa-piggy-bank"></i> Celengan & Target Tabungan</h2>
-            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Wujudkan barang impian atau dana darurat dengan menabung teratur.</p>
+            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Wujudkan barang impian atau dana
+              darurat dengan menabung teratur.</p>
           </div>
-          <button type="button" class="btn-primary" style="width: auto; padding: 10px 18px; font-size: 13px;" onclick="app.openPiggyModal()">
+          <button type="button" class="btn-primary" style="width: auto; padding: 10px 18px; font-size: 13px;"
+            onclick="app.openPiggyModal()">
             <i class="fa-solid fa-plus"></i> Buat Target Celengan
           </button>
         </div>
@@ -304,7 +316,8 @@
       <i class="fa-solid fa-piggy-bank"></i>
       <span>Celengan</span>
     </button>
-    <button id="navAuthBtn" class="nav-item" data-tab="auth" onclick="app.openAuthModal(app.currentUser ? 'profile' : 'login')">
+    <button id="navAuthBtn" class="nav-item" data-tab="auth"
+      onclick="app.openAuthModal(app.currentUser ? 'profile' : 'login')">
       <i class="fa-solid fa-circle-user"></i>
       <span id="navAuthLabel">Akun</span>
     </button>
@@ -357,16 +370,52 @@
 
         <!-- Detected OCR Candidate Numbers (if any) -->
         <div id="candidateAmountsBox" class="candidate-chips-wrap" style="display: none;">
-          <div class="candidate-chips-title"><i class="fa-solid fa-wand-magic-sparkles"></i> Angka Terdeteksi dari Nota (Klik untuk pilih):</div>
+          <div class="candidate-chips-title"><i class="fa-solid fa-wand-magic-sparkles"></i> Angka Terdeteksi dari Nota
+            (Klik untuk pilih):</div>
           <div id="candidateChipsList" class="candidate-chips"></div>
         </div>
 
+        <!-- Amount -->
         <!-- Amount -->
         <div class="form-group">
           <label class="form-label">Total Nominal (Rp)</label>
           <div class="input-icon-wrap">
             <span class="input-prefix">Rp</span>
             <input type="number" id="transAmount" class="form-control" placeholder="0" required min="1" step="any">
+          </div>
+        </div>
+
+        <!-- Admin Fee / Biaya Admin (For Transfer & Expenses) -->
+        <div class="form-group" id="adminFeeGroup">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label class="form-label" style="margin-bottom: 0;"><i class="fa-solid fa-receipt"
+                style="color: var(--primary-light);"></i> Biaya Admin / Transfer</label>
+            <span id="adminFeeHelperText" style="font-size: 11px; color: var(--text-muted);">Rp 0 (Gratis)</span>
+          </div>
+          <div class="admin-fee-chips-wrap">
+            <button type="button" class="fee-chip active" data-fee="0" onclick="app.setAdminFee(0)">Gratis (Rp
+              0)</button>
+            <button type="button" class="fee-chip" data-fee="1000" onclick="app.setAdminFee(1000)">Rp 1.000</button>
+            <button type="button" class="fee-chip" data-fee="2500" onclick="app.setAdminFee(2500)">Rp 2.500
+              (BI-FAST)</button>
+            <button type="button" class="fee-chip" data-fee="6500" onclick="app.setAdminFee(6500)">Rp 6.500
+              (Online)</button>
+          </div>
+          <div class="input-icon-wrap" style="margin-top: 8px;">
+            <span class="input-prefix">Rp</span>
+            <input type="number" id="transAdminFee" class="form-control" placeholder="0" min="0" step="any" value="0"
+              oninput="app.onAdminFeeInput()">
+          </div>
+          <div id="transTotalDeductionBox" class="deduction-summary-box" style="margin-top: 8px;">
+            <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted);">
+              <span>Nominal: <strong id="summaryBaseAmount">Rp 0</strong></span>
+              <span>+ Admin: <strong id="summaryAdminFee" style="color: var(--expense);">Rp 0</strong></span>
+            </div>
+            <div
+              style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 800; margin-top: 4px;">
+              <span>Total Terpotong dari Rekening:</span>
+              <span id="transTotalDeductionVal" style="color: var(--primary-light);">Rp 0</span>
+            </div>
           </div>
         </div>
 
@@ -425,7 +474,8 @@
         <!-- Notes -->
         <div class="form-group">
           <label class="form-label">Catatan / Keterangan</label>
-          <input type="text" id="transNotes" class="form-control" placeholder="Contoh: Belanja Bulanan / Transfer Uang Jajan">
+          <input type="text" id="transNotes" class="form-control"
+            placeholder="Contoh: Belanja Bulanan / Transfer Uang Jajan">
         </div>
 
         <!-- Form Action Buttons -->
@@ -452,21 +502,93 @@
       <form id="accountForm">
         <div class="form-group">
           <label class="form-label">Nama Rekening / Dompet</label>
-          <input type="text" id="accName" class="form-control" placeholder="Contoh: Bank BCA / Dompet Saku" required>
+          <input type="text" id="accName" class="form-control" placeholder="Contoh: Seabank / Bank BCA / Dompet Saku"
+            required>
         </div>
 
         <div class="form-group">
           <label class="form-label">Jenis Akun</label>
           <select id="accType" class="form-control" required>
-            <option value="cash">Kas Tunai / Dompet</option>
             <option value="bank">Rekening Bank</option>
+            <option value="cash">Kas Tunai / Dompet</option>
             <option value="ewallet">E-Wallet (GoPay/OVO/ShopeePay/DANA)</option>
             <option value="investment">Investasi / Reksa Dana / Saham</option>
           </select>
         </div>
 
+        <!-- Account Category: Saldo Biasa vs Tabungan Berbunga -->
         <div class="form-group">
-          <label class="form-label">Saldo Awal (Rp)</label>
+          <label class="form-label">Tipe Saldo Tabungan</label>
+          <div class="type-toggle-group" style="grid-template-columns: 1fr 1fr;">
+            <button type="button" id="btnAccSubRegular" class="type-toggle-btn active"
+              onclick="app.setAccountSubType('regular')">
+              <i class="fa-solid fa-wallet"></i> Saldo Biasa
+            </button>
+            <button type="button" id="btnAccSubSavings" class="type-toggle-btn"
+              onclick="app.setAccountSubType('savings')">
+              <i class="fa-solid fa-percent"></i> Tabungan Berbunga
+            </button>
+          </div>
+          <p style="font-size: 11px; color: var(--text-muted); margin-top: 5px;">
+            *Tabungan Berbunga berfungsi normal untuk transaksi harian & otomatis memperoleh bunga harian ke saldo.
+          </p>
+        </div>
+
+        <!-- Interest Configuration Section (Visible when savings) -->
+        <div id="accInterestSettingsBox" class="interest-settings-box" style="display: none;">
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <strong style="font-size: 12px; color: var(--primary-light);"><i class="fa-solid fa-calculator"></i>
+                Konfigurasi Suku Bunga Tabungan</strong>
+              <span style="font-size: 10px; color: var(--text-muted);">Pilih Preset Cepat:</span>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+              <button type="button" class="preset-badge-btn" onclick="app.applyInterestPreset('seabank')">
+                <i class="fa-solid fa-building-columns"></i> SeaBank (2.5% - 3.5%)
+              </button>
+              <button type="button" class="preset-badge-btn" onclick="app.applyInterestPreset('jago')">
+                <i class="fa-solid fa-piggy-bank"></i> Bank Jago (3.75%)
+              </button>
+              <button type="button" class="preset-badge-btn" onclick="app.applyInterestPreset('neobank')">
+                <i class="fa-solid fa-coins"></i> NeoBank (5.0%)
+              </button>
+              <button type="button" class="preset-badge-btn"
+                style="background: var(--bg-surface); border: 1px solid var(--border-color); color: var(--text-secondary);"
+                onclick="app.applyInterestPreset('custom')">
+                <i class="fa-solid fa-pen"></i> Kustom
+              </button>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" style="font-size: 11px;">Suku Bunga Dasar (% p.a.)</label>
+              <input type="number" id="accInterestRateDefault" class="form-control" placeholder="2.5" step="0.01"
+                min="0" value="2.5">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" style="font-size: 11px;">Suku Bunga Tier Tinggi (% p.a.)</label>
+              <input type="number" id="accInterestRateTier" class="form-control" placeholder="3.5" step="0.01" min="0"
+                value="3.5">
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <label class="form-label" style="font-size: 11px; margin-bottom: 0;">Batas Nominal Saldo untuk Naik Bunga
+                (Rp)</label>
+              <span style="font-size: 10px; color: var(--text-muted);">(Isi 0 jika tanpa tier)</span>
+            </div>
+            <div class="input-icon-wrap">
+              <span class="input-prefix">Rp</span>
+              <input type="number" id="accInterestTierThreshold" class="form-control" placeholder="150000000" step="any"
+                min="0" value="150000000">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Saldo Saat Ini (Rp)</label>
           <div class="input-icon-wrap">
             <span class="input-prefix">Rp</span>
             <input type="number" id="accBalance" class="form-control" placeholder="0" required step="any">
@@ -475,7 +597,7 @@
 
         <div class="form-group">
           <label class="form-label">Nomor Rekening / No. HP (Opsional)</label>
-          <input type="text" id="accNumber" class="form-control" placeholder="123-456-7890">
+          <input type="text" id="accNumber" class="form-control" placeholder="9012 9745 4977">
         </div>
 
         <button type="submit" class="btn-primary" style="margin-top: 16px;">
@@ -503,7 +625,8 @@
           <label class="form-label">Batas Anggaran per Bulan (Rp)</label>
           <div class="input-icon-wrap">
             <span class="input-prefix">Rp</span>
-            <input type="number" id="budgetLimit" class="form-control" placeholder="1000000" required min="1000" step="any">
+            <input type="number" id="budgetLimit" class="form-control" placeholder="1000000" required min="1000"
+              step="any">
           </div>
         </div>
 
@@ -525,14 +648,16 @@
       <form id="piggyForm">
         <div class="form-group">
           <label class="form-label">Nama Target Tabungan</label>
-          <input type="text" id="piggyName" class="form-control" placeholder="Contoh: Beli Laptop Baru / Dana Darurat" required>
+          <input type="text" id="piggyName" class="form-control" placeholder="Contoh: Beli Laptop Baru / Dana Darurat"
+            required>
         </div>
 
         <div class="form-group">
           <label class="form-label">Target Nominal yang Ingin Dicapai (Rp)</label>
           <div class="input-icon-wrap">
             <span class="input-prefix">Rp</span>
-            <input type="number" id="piggyTarget" class="form-control" placeholder="10000000" required min="1000" step="any">
+            <input type="number" id="piggyTarget" class="form-control" placeholder="10000000" required min="1000"
+              step="any">
           </div>
         </div>
 
@@ -570,7 +695,8 @@
           <label class="form-label">Nominal (Rp)</label>
           <div class="input-icon-wrap">
             <span class="input-prefix">Rp</span>
-            <input type="number" id="adjustPiggyAmount" class="form-control" placeholder="50000" required min="1" step="any">
+            <input type="number" id="adjustPiggyAmount" class="form-control" placeholder="50000" required min="1"
+              step="any">
           </div>
         </div>
 
@@ -604,7 +730,8 @@
       <!-- Camera Selector (For laptop with IR vs RGB webcam) -->
       <div id="cameraSourceGroup" class="form-group" style="margin-bottom: 12px;">
         <label class="form-label" style="font-size: 12px;"><i class="fa-solid fa-video"></i> Sumber Kamera:</label>
-        <select id="cameraSourceSelect" class="form-control" style="font-size: 13px;" onchange="receiptScanner.switchCamera('cameraVideo', this.value)">
+        <select id="cameraSourceSelect" class="form-control" style="font-size: 13px;"
+          onchange="receiptScanner.switchCamera('cameraVideo', this.value)">
           <option value="">Pilih Kamera...</option>
         </select>
       </div>
@@ -619,17 +746,21 @@
       <canvas id="scannerCanvas" style="display: none;"></canvas>
 
       <!-- Mobile Camera Card (For HTTP Local LAN / High-Resolution Photo) -->
-      <div id="mobileCameraNotice" style="display: none; text-align: center; padding: 22px 16px; background: var(--bg-card); border: 1px dashed var(--border-glow); border-radius: var(--radius-md); margin-bottom: 16px;">
-        <div style="width: 52px; height: 52px; border-radius: 50%; background: rgba(16, 185, 129, 0.18); color: var(--primary-light); display: flex; align-items: center; justify-content: center; font-size: 22px; margin: 0 auto 12px auto;">
+      <div id="mobileCameraNotice"
+        style="display: none; text-align: center; padding: 22px 16px; background: var(--bg-card); border: 1px dashed var(--border-glow); border-radius: var(--radius-md); margin-bottom: 16px;">
+        <div
+          style="width: 52px; height: 52px; border-radius: 50%; background: rgba(16, 185, 129, 0.18); color: var(--primary-light); display: flex; align-items: center; justify-content: center; font-size: 22px; margin: 0 auto 12px auto;">
           <i class="fa-solid fa-camera"></i>
         </div>
         <h4 style="font-size: 15px; font-weight: 700; margin-bottom: 4px;">Kamera HP Siap Digunakan</h4>
-        <p style="font-size: 12px; color: var(--text-muted); line-height: 1.4;">Gunakan kamera bawaan HP untuk foto struk beresolusi tinggi dan jernih.</p>
+        <p style="font-size: 12px; color: var(--text-muted); line-height: 1.4;">Gunakan kamera bawaan HP untuk foto
+          struk beresolusi tinggi dan jernih.</p>
       </div>
 
       <!-- OCR Scanning Progress -->
       <div id="ocrProgressBox" class="ocr-progress-box">
-        <div id="ocrProgressText" style="font-size: 13px; font-weight: 700; color: var(--text-primary);">Sedang menganalisis teks nota...</div>
+        <div id="ocrProgressText" style="font-size: 13px; font-weight: 700; color: var(--text-primary);">Sedang
+          menganalisis teks nota...</div>
         <div class="progress-bar-bg">
           <div id="ocrProgressBar" class="progress-bar-fill"></div>
         </div>
@@ -644,7 +775,8 @@
           <i class="fa-solid fa-camera"></i> Ambil Foto & Pindai Nota
         </button>
 
-        <button type="button" id="mobileCameraBtn" class="btn-primary" style="display: none;" onclick="document.getElementById('cameraDirectInput').click()">
+        <button type="button" id="mobileCameraBtn" class="btn-primary" style="display: none;"
+          onclick="document.getElementById('cameraDirectInput').click()">
           <i class="fa-solid fa-camera"></i> Buka Kamera HP & Foto Nota
         </button>
 
@@ -697,7 +829,8 @@
         </div>
         <div class="form-group">
           <label class="form-label">Password</label>
-          <input type="password" id="regPassword" class="form-control" placeholder="Minimal 6 karakter" required minlength="6">
+          <input type="password" id="regPassword" class="form-control" placeholder="Minimal 6 karakter" required
+            minlength="6">
         </div>
         <button type="submit" class="btn-primary" style="margin-top: 16px;">
           <i class="fa-solid fa-user-plus"></i> Buat Akun Baru
@@ -706,17 +839,119 @@
 
       <!-- Profile Logged In View -->
       <div id="profileView" style="display: none; text-align: center; padding: 10px 0;">
-        <div style="width: 70px; height: 70px; border-radius: 50%; background: var(--primary-gradient); display: flex; align-items: center; justify-content: center; font-size: 28px; color: #fff; margin: 0 auto 14px auto; box-shadow: 0 4px 18px rgba(16, 185, 129, 0.4);">
+        <div
+          style="width: 70px; height: 70px; border-radius: 50%; background: var(--primary-gradient); display: flex; align-items: center; justify-content: center; font-size: 28px; color: #fff; margin: 0 auto 14px auto; box-shadow: 0 4px 18px rgba(16, 185, 129, 0.4);">
           <i class="fa-solid fa-circle-user"></i>
         </div>
         <h4 id="profileUserName" style="font-size: 19px; margin-bottom: 4px; font-weight: 800;">User</h4>
-        <p id="profileUserEmail" style="color: var(--text-muted); font-size: 13px; margin-bottom: 12px;">email@example.com</p>
-        <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 20px; background: rgba(16, 185, 129, 0.15); color: var(--primary-light); font-size: 11px; font-weight: 700; margin-bottom: 22px;">
-          <i class="fa-solid fa-shield-halved"></i> Akun Utama (Lokal / Self-Hosted)
-        </div>
+        <p id="profileUserEmail" style="color: var(--text-muted); font-size: 13px; margin-bottom: 12px;">
+          email@example.com</p>
         <button type="button" id="logoutBtn" class="btn-secondary btn-danger">
           <i class="fa-solid fa-right-from-bracket"></i> Keluar dari Akun (Logout)
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 8: Simulasi Pendapatan Bunga Harian (SeaBank Style) -->
+  <div id="interestSimulationModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-percent" style="color: var(--primary);"></i> Simulasi Pendapatan Bunga Harian
+        </h3>
+        <button class="close-btn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="seabank-sim-body">
+        <!-- Account Info Pill -->
+        <div class="sim-account-header">
+          <div class="sim-account-title">
+            <i class="fa-solid fa-building-columns" style="color: #10b981;"></i>
+            <span id="simAccName">Seabank</span>
+          </div>
+          <div id="simAccNumber" class="sim-account-num">No. Rek: 9012 9745 4977</div>
+        </div>
+
+        <!-- Main Realtime Metrics Card -->
+        <div class="sim-stat-card">
+          <div class="sim-row">
+            <span class="sim-lbl">Saldo Tersedia</span>
+            <strong id="simCurrentBalance" class="sim-val-primary">Rp 196.007</strong>
+          </div>
+          <div class="sim-row">
+            <span class="sim-lbl">
+              Suku Bunga Saat Ini
+              <span id="simTierBadge" class="sim-tier-badge">Top up lagi, dapat 3,5%</span>
+            </span>
+            <strong id="simActiveRate" class="sim-rate-val" style="color: var(--income);">2,5% p.a.</strong>
+          </div>
+          <div class="sim-row" style="border-top: 1px dashed var(--border-color); padding-top: 10px; margin-top: 6px;">
+            <span class="sim-lbl" style="font-weight: 700; color: var(--text-primary);">Estimasi Pendapatan Bunga
+              Harian</span>
+            <strong id="simDailyInterest" class="sim-interest-val">Rp 13</strong>
+          </div>
+        </div>
+
+        <!-- Dynamic Bank Tier Table -->
+        <div class="sim-tier-table-wrap">
+          <div
+            style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">
+            Skema Suku Bunga Tabungan
+          </div>
+          <table class="sim-tier-table">
+            <thead>
+              <tr>
+                <th>Kategori Saldo</th>
+                <th style="text-align: right;">Suku Bunga*</th>
+              </tr>
+            </thead>
+            <tbody id="simTierTableBody">
+              <!-- Rendered dynamically based on account tier rules -->
+            </tbody>
+          </table>
+          <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">
+            *Bunga dihitung harian & cair otomatis. Bebas pajak PPh untuk saldo &le; Rp 7.500.000 (PPh 20% jika &gt; Rp
+            7.5jt).
+          </div>
+        </div>
+
+        <!-- Custom Simulation Calculator -->
+        <div class="sim-custom-calc-box">
+          <div style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">
+            <i class="fa-solid fa-calculator" style="color: var(--primary);"></i> Coba Simulasi Saldo Lain
+          </div>
+          <div class="input-icon-wrap" style="margin-bottom: 10px;">
+            <span class="input-prefix">Rp</span>
+            <input type="number" id="customSimInput" class="form-control" placeholder="10000000" step="any" min="0"
+              oninput="app.onCustomSimulateInput()">
+          </div>
+
+          <div class="sim-breakdown-grid">
+            <div class="sim-mini-box">
+              <div class="sim-mini-lbl">Harian (1 Hari)</div>
+              <div id="simCustomDaily" class="sim-mini-val">Rp 0</div>
+            </div>
+            <div class="sim-mini-box">
+              <div class="sim-mini-lbl">Bulanan (30 Hari)</div>
+              <div id="simCustomMonthly" class="sim-mini-val">Rp 0</div>
+            </div>
+            <div class="sim-mini-box">
+              <div class="sim-mini-lbl">Tahunan (365 Hari)</div>
+              <div id="simCustomYearly" class="sim-mini-val">Rp 0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 18px;">
+          <button type="button" id="btnManualAccrueNow" class="btn-primary" onclick="app.manualAccrueCurrentAccount()">
+            <i class="fa-solid fa-bolt"></i> Hitung & Cairkan Bunga Sekarang
+          </button>
+          <button type="button" class="btn-secondary" onclick="app.closeModal('interestSimulationModal')">
+            Tutup
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -731,4 +966,5 @@
   <script src="{{ asset('js/app.js') }}?v=5.0"></script>
 
 </body>
+
 </html>

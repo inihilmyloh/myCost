@@ -20,6 +20,7 @@ class Transaction extends Model
         'subtotal',
         'discount',
         'tax',
+        'admin_fee',
         'category',
         'transaction_date',
         'notes',
@@ -34,6 +35,7 @@ class Transaction extends Model
         'subtotal' => 'float',
         'discount' => 'float',
         'tax' => 'float',
+        'admin_fee' => 'float',
         'transaction_date' => 'date:Y-m-d',
         'created_at' => 'datetime',
         'updated_at' => 'datetime'

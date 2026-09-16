@@ -30,32 +30,38 @@ class TransactionController extends Controller
     private function applyAccountBalance(Transaction $trans, $isRevert = false)
     {
         $multiplier = $isRevert ? -1 : 1;
-        $amount = (float)$trans->amount * $multiplier;
+        $amount = (float)$trans->amount;
+        $adminFee = (float)($trans->admin_fee ?? 0);
 
         if ($trans->type === 'pemasukan' && $trans->account_id) {
             $account = Account::find($trans->account_id);
             if ($account) {
-                $account->balance += $amount;
+                $account->balance += ($amount * $multiplier);
                 $account->save();
             }
         } elseif ($trans->type === 'pengeluaran' && $trans->account_id) {
             $account = Account::find($trans->account_id);
             if ($account) {
-                $account->balance -= $amount;
+                // Deduct amount + admin_fee
+                $totalDeduct = ($amount + $adminFee) * $multiplier;
+                $account->balance -= $totalDeduct;
                 $account->save();
             }
         } elseif ($trans->type === 'transfer') {
             if ($trans->account_id) {
                 $src = Account::find($trans->account_id);
                 if ($src) {
-                    $src->balance -= $amount;
+                    // Source pays amount + admin_fee
+                    $totalDeduct = ($amount + $adminFee) * $multiplier;
+                    $src->balance -= $totalDeduct;
                     $src->save();
                 }
             }
             if ($trans->destination_account_id) {
                 $dst = Account::find($trans->destination_account_id);
                 if ($dst) {
-                    $dst->balance += $amount;
+                    // Destination receives net transfer amount
+                    $dst->balance += ($amount * $multiplier);
                     $dst->save();
                 }
             }
@@ -136,6 +142,7 @@ class TransactionController extends Controller
         $validator = Validator::make($request->all(), [
             'type' => 'required|in:pemasukan,pengeluaran,transfer',
             'amount' => 'required|numeric|min:1',
+            'admin_fee' => 'nullable|numeric|min:0',
             'account_id' => 'nullable|exists:accounts,id',
             'destination_account_id' => 'nullable|exists:accounts,id',
             'category' => 'nullable|string|max:50',
@@ -161,6 +168,7 @@ class TransactionController extends Controller
             'subtotal' => (float)($request->subtotal ?? $request->amount),
             'discount' => (float)($request->discount ?? 0),
             'tax' => (float)($request->tax ?? 0),
+            'admin_fee' => (float)($request->admin_fee ?? 0),
             'category' => $request->type === 'transfer' ? 'Transfer Antar Rekening' : ($request->category ?: 'Lainnya'),
             'transaction_date' => $request->transaction_date,
             'notes' => $request->notes,
@@ -209,6 +217,7 @@ class TransactionController extends Controller
         $validator = Validator::make($request->all(), [
             'type' => 'required|in:pemasukan,pengeluaran,transfer',
             'amount' => 'required|numeric|min:1',
+            'admin_fee' => 'nullable|numeric|min:0',
             'account_id' => 'nullable|exists:accounts,id',
             'destination_account_id' => 'nullable|exists:accounts,id',
             'category' => 'nullable|string|max:50',
@@ -232,6 +241,7 @@ class TransactionController extends Controller
             'subtotal' => (float)($request->subtotal ?? $request->amount),
             'discount' => (float)($request->discount ?? 0),
             'tax' => (float)($request->tax ?? 0),
+            'admin_fee' => (float)($request->admin_fee ?? 0),
             'category' => $request->type === 'transfer' ? 'Transfer Antar Rekening' : ($request->category ?: 'Lainnya'),
             'transaction_date' => $request->transaction_date,
             'notes' => $request->notes,

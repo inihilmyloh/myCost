@@ -21,11 +21,13 @@ class CategoryController extends Controller
                 ['name' => 'Kesehatan', 'icon' => 'fa-heart-pulse', 'color' => '#14b8a6'],
                 ['name' => 'Pendidikan', 'icon' => 'fa-graduation-cap', 'color' => '#0284c7'],
                 ['name' => 'Investasi', 'icon' => 'fa-chart-line', 'color' => '#10b981'],
-                ['name' => 'Donasi / Amal', 'icon' => 'fa-hand-holding-heart', 'color' => '#f97316'],
+                ['name' => 'Biaya Admin & Bank', 'icon' => 'fa-receipt', 'color' => '#f97316'],
+                ['name' => 'Donasi / Amal', 'icon' => 'fa-hand-holding-heart', 'color' => '#ec4899'],
                 ['name' => 'Lainnya', 'icon' => 'fa-circle-question', 'color' => '#64748b']
             ],
             'pemasukan' => [
                 ['name' => 'Gaji', 'icon' => 'fa-money-bill-wave', 'color' => '#10b981'],
+                ['name' => 'Bunga Tabungan', 'icon' => 'fa-percent', 'color' => '#059669'],
                 ['name' => 'Freelance', 'icon' => 'fa-laptop-code', 'color' => '#3b82f6'],
                 ['name' => 'Bisnis / Usaha', 'icon' => 'fa-store', 'color' => '#06b6d4'],
                 ['name' => 'Investasi & Dividen', 'icon' => 'fa-coins', 'color' => '#f59e0b'],

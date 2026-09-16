@@ -34,6 +34,8 @@ Route::post('/upload', [ReceiptUploadController::class, 'upload']);
 // Accounts / Wallets (Firefly III)
 Route::get('/accounts', [AccountController::class, 'index']);
 Route::post('/accounts', [AccountController::class, 'store']);
+Route::get('/accounts/{id}/simulate-interest', [AccountController::class, 'simulateInterest']);
+Route::post('/accounts/{id}/accrue-interest', [AccountController::class, 'accrueInterest']);
 Route::put('/accounts/{id?}', [AccountController::class, 'update']);
 Route::delete('/accounts/{id?}', [AccountController::class, 'destroy']);
 

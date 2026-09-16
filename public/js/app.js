@@ -467,6 +467,8 @@ class MyCostApp {
         investment: 'fa-chart-line'
       };
       const icon = iconMap[acc.type] || 'fa-wallet';
+      const isSavings = acc.account_sub_type === 'savings' || acc.has_interest;
+      const interestRate = acc.interest_rate_default || 2.5;
 
       return `
         <div class="account-card" onclick="app.openEditAccountModal(${acc.id})">
@@ -476,13 +478,23 @@ class MyCostApp {
             </div>
             <div class="account-meta">
               <h4>${acc.name}</h4>
-              <span>${acc.type} ${acc.account_number ? '• ' + acc.account_number : ''}</span>
+              <span>${isSavings ? 'Tabungan Berbunga' : (acc.type === 'bank' ? 'Rekening Bank' : acc.type)} ${acc.account_number ? '• ' + acc.account_number : ''}</span>
             </div>
           </div>
           <div>
             <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 2px;">Saldo Saat Ini</div>
             <div class="account-balance-val">Rp ${Number(acc.balance).toLocaleString('id-ID')}</div>
           </div>
+          ${isSavings ? `
+            <div class="account-badge-row">
+              <span class="badge-interest">
+                <i class="fa-solid fa-percent"></i> ${interestRate}% p.a. Cair Harian
+              </span>
+              <button type="button" class="badge-sim-btn" onclick="event.stopPropagation(); app.openInterestSimulationModal(${acc.id})">
+                <i class="fa-solid fa-chart-line"></i> Simulasi Bunga
+              </button>
+            </div>
+          ` : ''}
         </div>
       `;
     }).join('');
@@ -500,13 +512,61 @@ class MyCostApp {
     if (destSelect) destSelect.innerHTML = optionsHtml;
   }
 
+  setAccountSubType(subType) {
+    this.currentAccountSubType = subType;
+    const btnReg = document.getElementById('btnAccSubRegular');
+    const btnSav = document.getElementById('btnAccSubSavings');
+    const settingsBox = document.getElementById('accInterestSettingsBox');
+
+    if (btnReg) btnReg.classList.toggle('active', subType === 'regular');
+    if (btnSav) btnSav.classList.toggle('active', subType === 'savings');
+    if (settingsBox) settingsBox.style.display = subType === 'savings' ? 'block' : 'none';
+  }
+
+  applyInterestPreset(presetName) {
+    this.setAccountSubType('savings');
+    if (presetName === 'seabank') {
+      document.getElementById('accName').value = 'Seabank';
+      document.getElementById('accType').value = 'bank';
+      document.getElementById('accInterestRateDefault').value = '2.5';
+      document.getElementById('accInterestRateTier').value = '3.5';
+      document.getElementById('accInterestTierThreshold').value = '150000000';
+      this.showToast('Preset SeaBank (2,5% & 3,5% p.a.) diterapkan', 'info');
+    } else if (presetName === 'jago') {
+      document.getElementById('accName').value = 'Bank Jago';
+      document.getElementById('accType').value = 'bank';
+      document.getElementById('accInterestRateDefault').value = '3.75';
+      document.getElementById('accInterestRateTier').value = '3.75';
+      document.getElementById('accInterestTierThreshold').value = '0';
+      this.showToast('Preset Bank Jago (3,75% p.a.) diterapkan', 'info');
+    } else if (presetName === 'neobank') {
+      document.getElementById('accName').value = 'NeoBank / BNC';
+      document.getElementById('accType').value = 'bank';
+      document.getElementById('accInterestRateDefault').value = '5.0';
+      document.getElementById('accInterestRateTier').value = '5.0';
+      document.getElementById('accInterestTierThreshold').value = '0';
+      this.showToast('Preset NeoBank (5,0% p.a.) diterapkan', 'info');
+    } else if (presetName === 'custom') {
+      document.getElementById('accInterestRateDefault').focus();
+      this.showToast('Silakan atur suku bunga dan batas saldo sesuai regulasi bank Anda', 'info');
+    }
+  }
+
+  applySeabankPreset() {
+    this.applyInterestPreset('seabank');
+  }
+
   openAccountModal() {
     this.editingAccountId = null;
     document.getElementById('accountModalTitle').textContent = 'Tambah Rekening / Dompet';
     document.getElementById('accName').value = '';
-    document.getElementById('accType').value = 'cash';
+    document.getElementById('accType').value = 'bank';
     document.getElementById('accBalance').value = '0';
     document.getElementById('accNumber').value = '';
+    document.getElementById('accInterestRateDefault').value = '2.5';
+    document.getElementById('accInterestRateTier').value = '3.5';
+    document.getElementById('accInterestTierThreshold').value = '150000000';
+    this.setAccountSubType('regular');
     this.openModal('accountModal');
   }
 
@@ -520,14 +580,33 @@ class MyCostApp {
     document.getElementById('accType').value = acc.type;
     document.getElementById('accBalance').value = acc.balance;
     document.getElementById('accNumber').value = acc.account_number || '';
+    
+    const isSavings = acc.account_sub_type === 'savings' || acc.has_interest;
+    this.setAccountSubType(isSavings ? 'savings' : 'regular');
+
+    document.getElementById('accInterestRateDefault').value = acc.interest_rate_default || 2.5;
+    document.getElementById('accInterestRateTier').value = acc.interest_rate_tier || (acc.interest_rate_default || 2.5);
+    document.getElementById('accInterestTierThreshold').value = acc.interest_tier_threshold || 0;
+
     this.openModal('accountModal');
   }
 
   async handleAccountSubmit(e) {
     e.preventDefault();
+    const isSavings = (this.currentAccountSubType === 'savings');
+    const defaultRate = parseFloat(document.getElementById('accInterestRateDefault').value) || 0;
+    const tierRate = parseFloat(document.getElementById('accInterestRateTier').value) || defaultRate;
+    const threshold = parseFloat(document.getElementById('accInterestTierThreshold').value) || 0;
+
     const payload = {
       name: document.getElementById('accName').value,
       type: document.getElementById('accType').value,
+      account_sub_type: isSavings ? 'savings' : 'regular',
+      has_interest: isSavings,
+      interest_rate_default: defaultRate,
+      interest_rate_tier: tierRate,
+      interest_tier_threshold: threshold,
+      interest_period: 'daily',
       balance: parseFloat(document.getElementById('accBalance').value) || 0,
       account_number: document.getElementById('accNumber').value
     };
@@ -552,6 +631,119 @@ class MyCostApp {
         await this.loadData();
       } else {
         this.showToast(json.message || 'Gagal menyimpan rekening', 'error');
+      }
+    } catch (err) {
+      this.showToast('Gagal: ' + err.message, 'error');
+    }
+  }
+
+  // ----------------------------------------------------
+  // INTEREST SIMULATION MODULE (SeaBank Style)
+  // ----------------------------------------------------
+  async openInterestSimulationModal(accountId) {
+    this.activeSimulationAccountId = accountId;
+    const account = this.accounts.find((a) => a.id === accountId);
+    if (!account) return;
+
+    document.getElementById('simAccName').textContent = account.name;
+    document.getElementById('simAccNumber').textContent = account.account_number ? `No. Rek: ${account.account_number}` : account.type;
+    document.getElementById('customSimInput').value = Math.round(account.balance || 1000000);
+
+    this.openModal('interestSimulationModal');
+    await this.fetchAndRenderInterestSimulation(account.balance);
+  }
+
+  async fetchAndRenderInterestSimulation(balance) {
+    if (!this.activeSimulationAccountId) return;
+    try {
+      const res = await fetch(this.getEndpoint(`accounts/${this.activeSimulationAccountId}/simulate-interest?balance=${balance}`), {
+        headers: this.getHeaders()
+      });
+      const json = await res.json();
+      if (json.status === 'success') {
+        this.renderInterestSimulationData(json.data.simulation);
+      }
+    } catch (e) {
+      console.error('Error simulating interest:', e);
+    }
+  }
+
+  renderInterestSimulationData(sim) {
+    if (!sim) return;
+
+    const curBalEl = document.getElementById('simCurrentBalance');
+    const actRateEl = document.getElementById('simActiveRate');
+    const dailyIntEl = document.getElementById('simDailyInterest');
+    const badgeEl = document.getElementById('simTierBadge');
+    const tableBody = document.getElementById('simTierTableBody');
+
+    if (curBalEl) curBalEl.textContent = 'Rp ' + Number(sim.balance).toLocaleString('id-ID');
+    if (actRateEl) actRateEl.textContent = `${sim.active_rate}% p.a.`;
+    if (dailyIntEl) dailyIntEl.textContent = sim.daily.net_formatted;
+
+    if (badgeEl) {
+      if (!sim.has_tier) {
+        badgeEl.textContent = `Suku Bunga ${sim.default_rate}% p.a.`;
+        badgeEl.style.background = '#10b981';
+        badgeEl.style.color = '#ffffff';
+      } else if (sim.is_tier_higher) {
+        badgeEl.textContent = `Tier Tertinggi (${sim.tier_rate}% p.a.)`;
+        badgeEl.style.background = '#10b981';
+        badgeEl.style.color = '#ffffff';
+      } else {
+        badgeEl.textContent = `Top up lagi, dapat ${sim.tier_rate}%`;
+        badgeEl.style.background = '#f59e0b';
+        badgeEl.style.color = '#1e293b';
+      }
+    }
+
+    if (tableBody && sim.tiers) {
+      tableBody.innerHTML = sim.tiers.map((t) => `
+        <tr class="${t.is_active ? 'active-tier' : ''}">
+          <td>
+            <div>${t.label}</div>
+            ${t.is_active ? `<small style="font-size: 10px; color: var(--income); font-weight: 700;">(Tier Suku Bunga Aktif Saat Ini)</small>` : ''}
+          </td>
+          <td style="text-align: right; font-weight: 700; color: ${t.is_active ? 'var(--primary-light)' : 'var(--text-muted)'};">
+            ${t.rate}
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // Mini simulation results
+    const customDailyEl = document.getElementById('simCustomDaily');
+    const customMonthlyEl = document.getElementById('simCustomMonthly');
+    const customYearlyEl = document.getElementById('simCustomYearly');
+
+    if (customDailyEl) customDailyEl.textContent = sim.daily.net_formatted;
+    if (customMonthlyEl) customMonthlyEl.textContent = sim.monthly.net_formatted;
+    if (customYearlyEl) customYearlyEl.textContent = sim.yearly.net_formatted;
+  }
+
+  async onCustomSimulateInput() {
+    const val = parseFloat(document.getElementById('customSimInput')?.value) || 0;
+    await this.fetchAndRenderInterestSimulation(val);
+  }
+
+  async manualAccrueCurrentAccount() {
+    if (!this.activeSimulationAccountId) return;
+    try {
+      const res = await fetch(this.getEndpoint(`accounts/${this.activeSimulationAccountId}/accrue-interest`), {
+        method: 'POST',
+        headers: this.getHeaders()
+      });
+      const json = await res.json();
+      if (json.status === 'success') {
+        this.showToast(json.message, 'success');
+        await this.fetchAccounts();
+        await this.loadData();
+        const updatedAcc = this.accounts.find((a) => a.id === this.activeSimulationAccountId);
+        if (updatedAcc) {
+          await this.fetchAndRenderInterestSimulation(updatedAcc.balance);
+        }
+      } else {
+        this.showToast(json.message || 'Gagal mencairkan bunga', 'error');
       }
     } catch (err) {
       this.showToast('Gagal: ' + err.message, 'error');
@@ -874,6 +1066,7 @@ class MyCostApp {
           </div>
           <div class="trans-right">
             <div class="trans-amount ${amtClass}">${sign} Rp ${Number(item.amount).toLocaleString('id-ID')}</div>
+            ${item.admin_fee > 0 ? `<span style="font-size: 11px; color: var(--text-muted);">+ Admin: Rp ${Number(item.admin_fee).toLocaleString('id-ID')}</span>` : ''}
             ${item.discount > 0 ? `<span style="font-size: 11px; color: var(--income);">Diskon: Rp ${Number(item.discount).toLocaleString('id-ID')}</span>` : ''}
             ${item.receipt_image_url ? `<span class="receipt-tag"><i class="fa-solid fa-image"></i> Nota</span>` : ''}
           </div>
@@ -897,6 +1090,7 @@ class MyCostApp {
     const destGroup = document.getElementById('destAccountGroup');
     const catGroup = document.getElementById('categoryGroup');
     const itemGroup = document.getElementById('itemizedSection');
+    const adminFeeGroup = document.getElementById('adminFeeGroup');
 
     btnExp.classList.remove('active', 'expense');
     btnInc.classList.remove('active', 'income');
@@ -907,19 +1101,23 @@ class MyCostApp {
       if (destGroup) destGroup.style.display = 'none';
       if (catGroup) catGroup.style.display = 'block';
       if (itemGroup) itemGroup.style.display = 'block';
+      if (adminFeeGroup) adminFeeGroup.style.display = 'block';
     } else if (type === 'pemasukan') {
       btnInc.classList.add('active', 'income');
       if (destGroup) destGroup.style.display = 'none';
       if (catGroup) catGroup.style.display = 'block';
       if (itemGroup) itemGroup.style.display = 'block';
+      if (adminFeeGroup) adminFeeGroup.style.display = 'none';
     } else if (type === 'transfer') {
       btnTra.classList.add('active', 'transfer');
       if (destGroup) destGroup.style.display = 'block';
       if (catGroup) catGroup.style.display = 'none';
       if (itemGroup) itemGroup.style.display = 'none';
+      if (adminFeeGroup) adminFeeGroup.style.display = 'block';
     }
 
     this.renderCategoryGrid();
+    this.updateDeductionSummary();
   }
 
   renderCategoryGrid() {
@@ -942,6 +1140,46 @@ class MyCostApp {
   selectCategory(name) {
     this.activeCategoryId = name;
     this.renderCategoryGrid();
+  }
+
+  // ----------------------------------------------------
+  // ADMIN FEE MANAGEMENT
+  // ----------------------------------------------------
+  setAdminFee(val) {
+    const feeInput = document.getElementById('transAdminFee');
+    if (feeInput) feeInput.value = val;
+
+    document.querySelectorAll('.admin-fee-chips-wrap .fee-chip').forEach((chip) => {
+      chip.classList.toggle('active', parseFloat(chip.dataset.fee) === val);
+    });
+
+    this.updateDeductionSummary();
+  }
+
+  onAdminFeeInput() {
+    const feeVal = parseFloat(document.getElementById('transAdminFee')?.value) || 0;
+    document.querySelectorAll('.admin-fee-chips-wrap .fee-chip').forEach((chip) => {
+      chip.classList.toggle('active', parseFloat(chip.dataset.fee) === feeVal);
+    });
+    this.updateDeductionSummary();
+  }
+
+  updateDeductionSummary() {
+    const amount = parseFloat(document.getElementById('transAmount')?.value) || 0;
+    const adminFee = parseFloat(document.getElementById('transAdminFee')?.value) || 0;
+    const totalDeduct = amount + adminFee;
+
+    const helperText = document.getElementById('adminFeeHelperText');
+    const baseAmtEl = document.getElementById('summaryBaseAmount');
+    const feeAmtEl = document.getElementById('summaryAdminFee');
+    const totalEl = document.getElementById('transTotalDeductionVal');
+
+    if (helperText) {
+      helperText.textContent = adminFee > 0 ? `+ Rp ${Number(adminFee).toLocaleString('id-ID')}` : 'Rp 0 (Gratis)';
+    }
+    if (baseAmtEl) baseAmtEl.textContent = 'Rp ' + Number(amount).toLocaleString('id-ID');
+    if (feeAmtEl) feeAmtEl.textContent = 'Rp ' + Number(adminFee).toLocaleString('id-ID');
+    if (totalEl) totalEl.textContent = 'Rp ' + Number(totalDeduct).toLocaleString('id-ID');
   }
 
   // ----------------------------------------------------
@@ -1028,6 +1266,7 @@ class MyCostApp {
     const discountEl = document.getElementById('breakdownDiscount');
     if (subtotalEl) subtotalEl.textContent = 'Rp ' + subtotal.toLocaleString('id-ID');
     if (discountEl) discountEl.textContent = 'Rp ' + totalDiscount.toLocaleString('id-ID');
+    this.updateDeductionSummary();
   }
 
   openTransactionModal(prefill = null) {
@@ -1041,6 +1280,8 @@ class MyCostApp {
     document.getElementById('transAmount').value = prefill?.amount || '';
     document.getElementById('transDate').value = prefill?.date || new Date().toISOString().split('T')[0];
     document.getElementById('transNotes').value = prefill?.notes || '';
+
+    this.setAdminFee(prefill?.admin_fee || 0);
 
     this.setFormType(prefill?.type || 'pengeluaran');
     if (prefill?.category) {
@@ -1075,7 +1316,7 @@ class MyCostApp {
       if (prefill?.candidates && prefill.candidates.length > 0) {
         candidateBox.style.display = 'block';
         candidateList.innerHTML = prefill.candidates.map((c) => `
-          <div class="candidate-chip" onclick="document.getElementById('transAmount').value = ${c};">Rp ${Number(c).toLocaleString('id-ID')}</div>
+          <div class="candidate-chip" onclick="document.getElementById('transAmount').value = ${c}; app.updateDeductionSummary();">Rp ${Number(c).toLocaleString('id-ID')}</div>
         `).join('');
       } else {
         candidateBox.style.display = 'none';
@@ -1095,10 +1336,17 @@ class MyCostApp {
       }
     }
 
+    // Listen to amount changes for deduction preview
+    const transAmtInp = document.getElementById('transAmount');
+    if (transAmtInp) {
+      transAmtInp.oninput = () => this.updateDeductionSummary();
+    }
+
     // Reset upload receipt file input
     const fileInp = document.getElementById('uploadReceiptInput');
     if (fileInp) fileInp.value = '';
 
+    this.updateDeductionSummary();
     this.openModal('transactionModal');
   }
 
@@ -1116,6 +1364,8 @@ class MyCostApp {
     document.getElementById('transDate').value = item.transaction_date;
     document.getElementById('transNotes').value = item.notes || '';
 
+    this.setAdminFee(item.admin_fee || 0);
+
     this.setFormType(item.type);
     if (item.category) {
       this.activeCategoryId = item.category;
@@ -1126,8 +1376,14 @@ class MyCostApp {
     if (item.account_id) document.getElementById('transAccountSelect').value = item.account_id;
     if (item.destination_account_id) document.getElementById('transDestAccountSelect').value = item.destination_account_id;
 
+    const transAmtInp = document.getElementById('transAmount');
+    if (transAmtInp) {
+      transAmtInp.oninput = () => this.updateDeductionSummary();
+    }
+
     this.renderItemRows();
     this.recalculateTotalsFromItems();
+    this.updateDeductionSummary();
     this.openModal('transactionModal');
   }
 
@@ -1135,6 +1391,7 @@ class MyCostApp {
     e.preventDefault();
 
     const amount = parseFloat(document.getElementById('transAmount').value);
+    const adminFee = parseFloat(document.getElementById('transAdminFee')?.value) || 0;
     const date = document.getElementById('transDate').value;
     const notes = document.getElementById('transNotes').value;
     const accountId = document.getElementById('transAccountSelect').value || null;
@@ -1157,6 +1414,7 @@ class MyCostApp {
       amount: amount,
       subtotal: subtotal,
       discount: discount,
+      admin_fee: adminFee,
       category: this.activeFormType === 'transfer' ? 'Transfer Antar Rekening' : this.activeCategoryId,
       account_id: accountId,
       destination_account_id: this.activeFormType === 'transfer' ? destAccountId : null,

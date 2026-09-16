@@ -42,12 +42,24 @@
 
 ## 🌟 Fitur Utama
 
-### 1. 💼 Multi-Rekening & Dompet (*Firefly III Inspired*)
-- Kelola berbagai kategori aset: **Kas Tunai / Dompet**, **Rekening Bank (BCA, Mandiri, BRI, dll.)**, **E-Wallet (GoPay, OVO, ShopeePay, DANA)**, dan **Pos Investasi**.
+### 1. 💼 Multi-Rekening & Tabungan Berbunga (*Firefly III Inspired*)
+- Kelola berbagai kategori aset: **Kas Tunai / Dompet**, **Rekening Bank (BCA, Mandiri, BRI, SeaBank, Jago, dll.)**, **E-Wallet (GoPay, OVO, ShopeePay, DANA)**, dan **Pos Investasi**.
+- **Kategori Sub-Rekening:**
+  - 💳 **Saldo Biasa / Reguler:** Untuk rekening transaksi harian tanpa bunga.
+  - 📈 **Tabungan Berbunga (Cair Harian):** Untuk rekening tabungan digital yang menghasilkan bunga setiap hari (misal: SeaBank, Bank Jago, NeoBank, dll.).
+- **Bunga Tabungan Harian Otomatis & Fleksibel:**
+  - ⚡ **Preset Cepat Bank Digital:** SeaBank (2,5% < 150 jt & 3,5% ≥ 150 jt), Bank Jago (3,75% p.a.), NeoBank (5,0% p.a.).
+  - 🛠️ **Custom Suku Bunga & Tier Threshold:** Atur suku bunga dasar, batas saldo tier (threshold), dan bunga tier tinggi sesuai regulasi bank Anda sendiri.
+  - 💰 **Auto-Accrual:** Bunga dihitung otomatis setiap hari (basis 365 hari) dan otomatis memotong pajak bunga (PPh 20%) jika saldo memenuhi syarat regulasi (> Rp 7.500.000).
+  - 🔍 **Simulasi & Rincian Bunga:** Modal interaktif untuk melihat estimasi bunga kotor, potongan pajak, estimasi harian/bulanan/tahunan, dan aturan tier aktif.
+- **Biaya Admin Fleksibel (Transfer & Pengeluaran):**
+  - Dukungan biaya admin pada **Transfer Antar Rekening** maupun **Pengeluaran Eksternal**.
+  - Pilihan cepat: **Gratis (Rp 0)**, **Rp 1.000**, **BI-FAST (Rp 2.500)**, **Rp 6.500**, atau **Input Kustom**.
+  - Rekening pengirim otomatis dipotong sebesar `Nominal + Biaya Admin` secara presisi.
 - **Mutasi Saldo Otomatis & Real-time**:
-  - 🟢 **Pemasukan:** Menambah (+) saldo rekening terkait secara instan.
-  - 🔴 **Pengeluaran:** Mengurangi (-) saldo rekening terkait.
-  - 🔄 **Transfer Antar Rekening:** Otomatis memotong rekening asal dan menambah rekening tujuan.
+  - 🟢 **Pemasukan & Bunga:** Menambah (+) saldo rekening terkait secara instan.
+  - 🔴 **Pengeluaran:** Mengurangi (-) saldo rekening terkait beserta biaya admin.
+  - 🔄 **Transfer Antar Rekening:** Otomatis memotong rekening asal (nominal + admin) dan menambah rekening tujuan.
   - 🛡️ **Rollback Aman:** Edit atau hapus transaksi akan menyesuaikan saldo kembali ke kondisi semula tanpa risiko selisih.
 
 ### 2. 🧾 Pemindai Nota Pintar (*Universal OCR Scanner*)
@@ -224,39 +236,43 @@ wscript "D:\laragon\www\myCost\Tutup-myCost.vbs"
 ```plaintext
 myCost/
 ├── app/
+│   ├── Console/Commands/
+│   │   └── AccrueAccountInterestCommand.php # Scheduler/CLI Bunga Tabungan Harian
 │   ├── Http/Controllers/
-│   │   ├── AccountController.php       # Manajemen Rekening Bank & E-Wallet
-│   │   ├── AuthController.php          # Otentikasi Pengguna
-│   │   ├── BudgetController.php        # Manajemen Batas Anggaran
-│   │   ├── CategoryController.php      # Kategori Transaksi
-│   │   ├── PiggyBankController.php     # Celengan & Tabungan Impian
-│   │   ├── StatsController.php         # Analytics & Dashboard Summary
-│   │   └── TransactionController.php   # CRUD Transaksi & Mutasi Saldo
-│   └── Models/
-│       ├── Account.php                 # Model Rekening
-│       ├── Budget.php                  # Model Anggaran
-│       ├── PiggyBank.php               # Model Celengan
-│       ├── Transaction.php             # Model Transaksi
-│       └── TransactionItem.php         # Model Item Rincian Transaksi
+│   │   ├── AccountController.php            # Manajemen Rekening, Simulasi & Bunga
+│   │   ├── AuthController.php               # Otentikasi Pengguna
+│   │   ├── BudgetController.php             # Manajemen Batas Anggaran
+│   │   ├── CategoryController.php           # Kategori Transaksi
+│   │   ├── PiggyBankController.php          # Celengan & Tabungan Impian
+│   │   ├── StatsController.php              # Analytics & Dashboard Summary
+│   │   └── TransactionController.php        # Transaksi, Admin Fee & Mutasi Saldo
+│   ├── Models/
+│   │   ├── Account.php                      # Model Rekening & Skema Bunga
+│   │   ├── Budget.php                       # Model Anggaran
+│   │   ├── PiggyBank.php                    # Model Celengan
+│   │   ├── Transaction.php                  # Model Transaksi
+│   │   └── TransactionItem.php              # Model Item Rincian Transaksi
+│   └── Services/
+│       └── AccountInterestService.php       # Engine Perhitungan & Akrual Bunga
 ├── database/
-│   ├── migrations/                     # Skema Database MySQL
-│   └── seeders/DatabaseSeeder.php      # Seeder Akun & Data Awal
+│   ├── migrations/                          # Skema Database MySQL
+│   └── seeders/DatabaseSeeder.php           # Seeder Akun & Data Awal
 ├── public/
-│   ├── css/style.css                   # Desain Modern Emerald Green
+│   ├── css/style.css                        # Desain Modern Emerald Green & Modals
 │   ├── js/
-│   │   ├── app.js                      # Core Frontend Logic & PWA State
-│   │   ├── charts.js                   # Visualisasi Chart.js
-│   │   └── ocr.js                      # Engine Scanner Tesseract.js Universal
-│   ├── manifest.json                   # Konfigurasi Web App Manifest PWA
-│   └── sw.js                           # Service Worker & Offline Cache
+│   │   ├── app.js                           # Frontend Logic, Presets, Simulasi & PWA
+│   │   ├── charts.js                        # Visualisasi Chart.js
+│   │   └── ocr.js                           # Engine Scanner Tesseract.js Universal
+│   ├── manifest.json                        # Konfigurasi Web App Manifest PWA
+│   └── sw.js                                # Service Worker & Offline Cache
 ├── resources/views/
-│   └── app.blade.php                   # Single Page Interface View
-├── Buka-myCost.bat                     # Windows Quick Launcher (Console)
-├── Buka-myCost-Background.vbs          # Windows Silent Startup Launcher
-├── Tutup-myCost.vbs                    # Skrip Penutup Server & Tab Browser
+│   └── app.blade.php                        # Single Page Interface View
+├── Buka-myCost.bat                          # Windows Quick Launcher (Console)
+├── Buka-myCost-Background.vbs               # Windows Silent Startup Launcher
+├── Tutup-myCost.vbs                         # Skrip Penutup Server & Tab Browser
 └── routes/
-    ├── api.php                         # REST API Endpoints
-    └── web.php                         # Web Routes
+    ├── api.php                              # REST API Endpoints
+    └── web.php                              # Web Routes
 ```
 
 ---
