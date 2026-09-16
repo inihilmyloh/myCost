@@ -23,9 +23,9 @@ class AccountController extends Controller
     }
 
     /**
-     * Get all accounts for user. Seed defaults if empty. Accrue daily interest automatically.
+     * Get all accounts for user. Seed defaults if empty. Accrue daily interest & monthly admin fees automatically.
      */
-    public function index(Request $request, AccountInterestService $interestService)
+    public function index(Request $request, AccountInterestService $interestService, \App\Services\AccountFeeService $feeService)
     {
         $userId = $this->getUserId($request);
 
@@ -36,13 +36,20 @@ class AccountController extends Controller
             // Log & continue without breaking UI
         }
 
+        // Auto-deduct monthly admin fees if due
+        try {
+            $feeService->deductAllMonthlyAdminFees($userId);
+        } catch (\Exception $e) {
+            // Log & continue without breaking UI
+        }
+
         $accounts = Account::forUser($userId)->where('is_active', true)->get();
 
         // If user has 0 accounts, seed default accounts (Kas Tunai, Rekening Bank, E-Wallet)
         if ($accounts->isEmpty()) {
             $defaultAccounts = [
                 ['name' => 'Kas Tunai / Dompet', 'type' => 'cash', 'account_sub_type' => 'regular', 'has_interest' => false, 'balance' => 0, 'icon' => 'fa-wallet', 'color' => '#10b981'],
-                ['name' => 'Seabank', 'type' => 'bank', 'account_sub_type' => 'savings', 'has_interest' => true, 'interest_rate_default' => 2.50, 'interest_tier_threshold' => 150000000.00, 'interest_rate_tier' => 3.50, 'interest_period' => 'daily', 'balance' => 0, 'icon' => 'fa-building-columns', 'color' => '#059669', 'last_interest_accrued_date' => now()->toDateString()],
+                ['name' => 'Seabank', 'type' => 'bank', 'account_sub_type' => 'savings', 'has_interest' => true, 'interest_rate_default' => 2.50, 'interest_tier_threshold' => 150000000.00, 'interest_rate_tier' => 3.50, 'interest_period' => 'daily', 'monthly_admin_fee' => 0.00, 'balance' => 0, 'icon' => 'fa-building-columns', 'color' => '#059669', 'last_interest_accrued_date' => now()->toDateString()],
                 ['name' => 'GoPay / E-Wallet', 'type' => 'ewallet', 'account_sub_type' => 'regular', 'has_interest' => false, 'balance' => 0, 'icon' => 'fa-mobile-screen-button', 'color' => '#34d399'],
             ];
 
@@ -75,10 +82,13 @@ class AccountController extends Controller
             'type' => 'required|string|in:cash,bank,ewallet,investment',
             'account_sub_type' => 'nullable|string|in:regular,savings',
             'has_interest' => 'nullable|boolean',
+            'interest_tiers' => 'nullable',
             'interest_rate_default' => 'nullable|numeric|min:0|max:100',
             'interest_tier_threshold' => 'nullable|numeric|min:0',
             'interest_rate_tier' => 'nullable|numeric|min:0|max:100',
             'interest_period' => 'nullable|string|in:daily,monthly',
+            'monthly_admin_fee' => 'nullable|numeric|min:0',
+            'admin_fee_date' => 'nullable|integer|min:1|max:31',
             'balance' => 'nullable|numeric',
             'account_number' => 'nullable|string|max:50',
             'icon' => 'nullable|string|max:50',
@@ -92,19 +102,41 @@ class AccountController extends Controller
         $hasInterest = $request->boolean('has_interest') || $request->account_sub_type === 'savings';
         $subType = $request->account_sub_type ?? ($hasInterest ? 'savings' : 'regular');
 
+        $interestTiers = $request->interest_tiers;
+        if (is_string($interestTiers)) {
+            $interestTiers = json_decode($interestTiers, true);
+        }
+
+        $defaultRate = (float)($request->interest_rate_default ?? 2.50);
+        $tierRate = (float)($request->interest_rate_tier ?? 3.50);
+        $tierThreshold = (float)($request->interest_tier_threshold ?? 150000000.00);
+
+        if (is_array($interestTiers) && !empty($interestTiers)) {
+            $defaultRate = (float)($interestTiers[0]['rate'] ?? $defaultRate);
+            if (count($interestTiers) > 1) {
+                $lastTier = end($interestTiers);
+                $tierRate = (float)($lastTier['rate'] ?? $defaultRate);
+                $tierThreshold = (float)($lastTier['min'] ?? $tierThreshold);
+            }
+        }
+
         $account = Account::create([
             'user_id' => $userId,
             'name' => $request->name,
             'type' => $request->type,
             'account_sub_type' => $subType,
             'has_interest' => $hasInterest,
-            'interest_rate_default' => (float)($request->interest_rate_default ?? 2.50),
-            'interest_tier_threshold' => (float)($request->interest_tier_threshold ?? 150000000.00),
-            'interest_rate_tier' => (float)($request->interest_rate_tier ?? 3.50),
+            'interest_tiers' => is_array($interestTiers) ? $interestTiers : null,
+            'interest_rate_default' => $defaultRate,
+            'interest_tier_threshold' => $tierThreshold,
+            'interest_rate_tier' => $tierRate,
             'interest_period' => $request->interest_period ?? 'daily',
             'interest_tax_threshold' => 7500000.00,
             'interest_tax_rate' => 20.00,
             'last_interest_accrued_date' => $hasInterest ? now()->toDateString() : null,
+            'monthly_admin_fee' => (float)($request->monthly_admin_fee ?? 0),
+            'admin_fee_date' => (int)($request->admin_fee_date ?: 25),
+            'last_admin_fee_deducted_date' => ((float)($request->monthly_admin_fee ?? 0) > 0) ? now()->toDateString() : null,
             'balance' => (float)($request->balance ?? 0),
             'account_number' => $request->account_number,
             'icon' => $request->icon ?? 'fa-wallet',
@@ -137,10 +169,13 @@ class AccountController extends Controller
             'type' => 'nullable|string|in:cash,bank,ewallet,investment',
             'account_sub_type' => 'nullable|string|in:regular,savings',
             'has_interest' => 'nullable|boolean',
+            'interest_tiers' => 'nullable',
             'interest_rate_default' => 'nullable|numeric|min:0|max:100',
             'interest_tier_threshold' => 'nullable|numeric|min:0',
             'interest_rate_tier' => 'nullable|numeric|min:0|max:100',
             'interest_period' => 'nullable|string|in:daily,monthly',
+            'monthly_admin_fee' => 'nullable|numeric|min:0',
+            'admin_fee_date' => 'nullable|integer|min:1|max:31',
             'balance' => 'nullable|numeric',
             'account_number' => 'nullable|string|max:50',
             'icon' => 'nullable|string|max:50',
@@ -154,8 +189,30 @@ class AccountController extends Controller
 
         $data = $request->only([
             'name', 'type', 'balance', 'account_number', 'icon', 'color', 'is_active',
-            'interest_rate_default', 'interest_tier_threshold', 'interest_rate_tier', 'interest_period'
+            'interest_rate_default', 'interest_tier_threshold', 'interest_rate_tier', 'interest_period',
+            'monthly_admin_fee', 'admin_fee_date'
         ]);
+
+        if ($request->has('interest_tiers')) {
+            $tiers = $request->interest_tiers;
+            if (is_string($tiers)) {
+                $tiers = json_decode($tiers, true);
+            }
+            if (is_array($tiers)) {
+                $data['interest_tiers'] = $tiers;
+                if (!empty($tiers)) {
+                    $data['interest_rate_default'] = (float)($tiers[0]['rate'] ?? 2.50);
+                    if (count($tiers) > 1) {
+                        $last = end($tiers);
+                        $data['interest_rate_tier'] = (float)($last['rate'] ?? $data['interest_rate_default']);
+                        $data['interest_tier_threshold'] = (float)($last['min'] ?? 0);
+                    } else {
+                        $data['interest_rate_tier'] = $data['interest_rate_default'];
+                        $data['interest_tier_threshold'] = 0;
+                    }
+                }
+            }
+        }
 
         if ($request->has('account_sub_type') || $request->has('has_interest')) {
             $hasInterest = $request->has('has_interest') 
@@ -203,7 +260,7 @@ class AccountController extends Controller
     /**
      * Simulate interest calculations for an account or custom amount.
      */
-    public function simulateInterest(Request $request, $id = null, AccountInterestService $service)
+    public function simulateInterest(Request $request, AccountInterestService $service, $id = null)
     {
         $userId = $this->getUserId($request);
         $account = null;
@@ -212,11 +269,23 @@ class AccountController extends Controller
         }
 
         $balance = (float)($request->balance ?? ($account ? $account->balance : 1000000));
-        $defaultRate = (float)($request->interest_rate_default ?? ($account ? $account->interest_rate_default : 2.50));
-        $tierRate = (float)($request->interest_rate_tier ?? ($account ? $account->interest_rate_tier : 3.50));
-        $tierThreshold = (float)($request->interest_tier_threshold ?? ($account ? $account->interest_tier_threshold : 150000000.00));
+        
+        $tiers = $request->interest_tiers;
+        if (is_string($tiers)) {
+            $tiers = json_decode($tiers, true);
+        }
 
-        $simulation = $service->simulate($balance, $defaultRate, $tierRate, $tierThreshold);
+        if (empty($tiers) && $account) {
+            $tiers = $account;
+        }
+
+        $simulation = $service->simulate(
+            $balance,
+            $tiers,
+            (float)($request->interest_rate_default ?? 2.50),
+            (float)($request->interest_rate_tier ?? 3.50),
+            (float)($request->interest_tier_threshold ?? 150000000.00)
+        );
 
         return response()->json([
             'status' => 'success',

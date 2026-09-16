@@ -81,10 +81,8 @@ class AccountInterestService
                 $balance = (float)$account->balance;
 
                 if ($balance > 0) {
-                    $threshold = (float)($account->interest_tier_threshold ?? 150000000.00);
-                    $rate = ($balance >= $threshold)
-                        ? (float)($account->interest_rate_tier ?? 3.50)
-                        : (float)($account->interest_rate_default ?? 2.50);
+                    $tierInfo = $this->resolveTierInfo($account, $balance);
+                    $rate = (float)$tierInfo['active_rate'];
 
                     // Daily gross interest: (Balance * Rate / 100) / 365
                     $grossInterest = ($balance * ($rate / 100)) / 365.0;
@@ -149,26 +147,138 @@ class AccountInterestService
     }
 
     /**
-     * Simulate interest calculations for an account or custom balance.
-     *
-     * @param float $balance
-     * @param float|null $defaultRate
-     * @param float|null $tierRate
-     * @param float|null $tierThreshold
-     * @return array
+     * Normalize and resolve tier structure for an account or custom tiers array.
+     */
+    public function resolveTierInfo($accountOrTiers, float $balance): array
+    {
+        $rawTiers = [];
+
+        if (is_array($accountOrTiers)) {
+            $rawTiers = $accountOrTiers;
+        } elseif ($accountOrTiers instanceof Account) {
+            if (!empty($accountOrTiers->interest_tiers) && is_array($accountOrTiers->interest_tiers)) {
+                $rawTiers = $accountOrTiers->interest_tiers;
+            } else {
+                $defRate = (float)($accountOrTiers->interest_rate_default ?? 2.50);
+                $tierRate = (float)($accountOrTiers->interest_rate_tier ?? 3.50);
+                $threshold = (float)($accountOrTiers->interest_tier_threshold ?? 150000000.00);
+
+                if ($threshold > 0 && $tierRate != $defRate) {
+                    $rawTiers = [
+                        ['min' => 0, 'rate' => $defRate],
+                        ['min' => $threshold, 'rate' => $tierRate],
+                    ];
+                } else {
+                    $rawTiers = [
+                        ['min' => 0, 'rate' => $defRate],
+                    ];
+                }
+            }
+        }
+
+        // Clean & sort raw tiers by min ascending
+        $normalized = [];
+        foreach ($rawTiers as $t) {
+            $minVal = isset($t['min']) ? (float)$t['min'] : 0.0;
+            $rateVal = isset($t['rate']) ? (float)$t['rate'] : 0.0;
+            $normalized[] = [
+                'min' => max(0, $minVal),
+                'rate' => max(0, $rateVal),
+            ];
+        }
+
+        usort($normalized, function ($a, $b) {
+            return $a['min'] <=> $b['min'];
+        });
+
+        if (empty($normalized)) {
+            $normalized = [['min' => 0, 'rate' => 2.50]];
+        }
+
+        // Find active tier
+        $activeTierIndex = 0;
+        $activeRate = $normalized[0]['rate'];
+
+        for ($i = 0; $i < count($normalized); $i++) {
+            if ($balance >= $normalized[$i]['min']) {
+                $activeTierIndex = $i;
+                $activeRate = $normalized[$i]['rate'];
+            }
+        }
+
+        // Build presentation tiers
+        $displayTiers = [];
+        $totalCount = count($normalized);
+        $nextTierGoal = null;
+
+        for ($i = 0; $i < $totalCount; $i++) {
+            $current = $normalized[$i];
+            $next = ($i < $totalCount - 1) ? $normalized[$i + 1] : null;
+
+            $minFormatted = number_format($current['min'], 0, ',', '.');
+            if ($totalCount === 1) {
+                $label = "Semua Nominal Saldo";
+            } elseif ($next !== null) {
+                $nextMinFormatted = number_format($next['min'], 0, ',', '.');
+                $label = "Saldo Rp {$minFormatted} s/d < Rp {$nextMinFormatted}";
+            } else {
+                $label = "Saldo ≥ Rp {$minFormatted}";
+            }
+
+            $isActive = ($i === $activeTierIndex);
+
+            $displayTiers[] = [
+                'tier_number' => $i + 1,
+                'label' => $label,
+                'min' => $current['min'],
+                'rate' => "{$current['rate']}% p.a.",
+                'rate_num' => $current['rate'],
+                'is_active' => $isActive,
+            ];
+
+            if ($isActive && $next !== null) {
+                $needed = max(0, $next['min'] - $balance);
+                $nextTierGoal = [
+                    'next_tier_number' => $i + 2,
+                    'next_rate' => $next['rate'],
+                    'target_min' => $next['min'],
+                    'amount_needed' => $needed,
+                    'amount_needed_formatted' => 'Rp ' . number_format($needed, 0, ',', '.'),
+                    'badge_text' => "Top up Rp " . number_format($needed, 0, ',', '.') . " lagi, dapat {$next['rate']}% p.a.",
+                ];
+            }
+        }
+
+        return [
+            'active_rate' => $activeRate,
+            'active_tier_number' => $activeTierIndex + 1,
+            'is_highest_tier' => ($activeTierIndex === $totalCount - 1),
+            'tiers' => $displayTiers,
+            'raw_tiers' => $normalized,
+            'next_tier_goal' => $nextTierGoal,
+        ];
+    }
+
+    /**
+     * Simulate interest calculations for an account or custom balance and tiers.
      */
     public function simulate(
         float $balance,
-        ?float $defaultRate = 2.50,
-        ?float $tierRate = 3.50,
-        ?float $tierThreshold = 150000000.00
+        $accountOrTiers = null,
+        ?float $legacyDefaultRate = null,
+        ?float $legacyTierRate = null,
+        ?float $legacyTierThreshold = null
     ): array {
-        $defaultRate = $defaultRate ?? 2.50;
-        $tierRate = $tierRate ?? 3.50;
-        $tierThreshold = $tierThreshold ?? 150000000.00;
+        // If legacy params provided without tiers
+        if (empty($accountOrTiers) && $legacyDefaultRate !== null) {
+            $accountOrTiers = [
+                ['min' => 0, 'rate' => $legacyDefaultRate],
+                ['min' => $legacyTierThreshold ?? 150000000, 'rate' => $legacyTierRate ?? $legacyDefaultRate],
+            ];
+        }
 
-        $isTierHigher = $balance >= $tierThreshold;
-        $activeRate = $isTierHigher ? $tierRate : $defaultRate;
+        $tierInfo = $this->resolveTierInfo($accountOrTiers, $balance);
+        $activeRate = (float)$tierInfo['active_rate'];
 
         // Daily
         $dailyGross = ($balance * ($activeRate / 100)) / 365.0;
@@ -189,44 +299,14 @@ class AccountInterestService
         $yearlyTax = $hasTax ? ($yearlyGross * $taxRate) : 0.0;
         $yearlyNet = $yearlyGross - $yearlyTax;
 
-        $hasTier = ($tierThreshold > 0 && $tierRate > $defaultRate);
-        $thresholdFormatted = number_format($tierThreshold, 0, ',', '.');
-
-        $tiers = [];
-        if ($hasTier) {
-            $tiers = [
-                [
-                    'label' => "Saldo Tabungan < Rp {$thresholdFormatted}",
-                    'rate' => "{$defaultRate}% p.a.",
-                    'is_active' => !$isTierHigher,
-                ],
-                [
-                    'label' => "Saldo Tabungan ≥ Rp {$thresholdFormatted}",
-                    'rate' => "{$tierRate}% p.a.",
-                    'is_active' => $isTierHigher,
-                ],
-            ];
-        } else {
-            $tiers = [
-                [
-                    'label' => "Semua Nominal Saldo",
-                    'rate' => "{$defaultRate}% p.a.",
-                    'is_active' => true,
-                ]
-            ];
-        }
-
         return [
             'balance' => $balance,
             'active_rate' => $activeRate,
-            'default_rate' => $defaultRate,
-            'tier_rate' => $tierRate,
-            'has_tier' => $hasTier,
-            'is_tier_higher' => $isTierHigher,
-            'tier_threshold' => $tierThreshold,
-            'tier_threshold_formatted' => 'Rp ' . $thresholdFormatted,
-            'amount_to_next_tier' => max(0, $tierThreshold - $balance),
-            'amount_to_next_tier_formatted' => 'Rp ' . number_format(max(0, $tierThreshold - $balance), 0, ',', '.'),
+            'active_tier_number' => $tierInfo['active_tier_number'],
+            'is_highest_tier' => $tierInfo['is_highest_tier'],
+            'tiers' => $tierInfo['tiers'],
+            'raw_tiers' => $tierInfo['raw_tiers'],
+            'next_tier_goal' => $tierInfo['next_tier_goal'],
             'has_tax' => $hasTax,
             'daily' => [
                 'gross' => round($dailyGross, 2),
@@ -246,7 +326,7 @@ class AccountInterestService
                 'net' => round($yearlyNet, 2),
                 'net_formatted' => 'Rp ' . number_format(round($yearlyNet), 0, ',', '.'),
             ],
-            'tiers' => $tiers,
         ];
     }
 }
+

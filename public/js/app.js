@@ -326,6 +326,7 @@ class MyCostApp {
 
     document.getElementById('transactionForm')?.addEventListener('submit', (e) => this.handleTransactionSubmit(e));
     document.getElementById('accountForm')?.addEventListener('submit', (e) => this.handleAccountSubmit(e));
+    document.getElementById('accType')?.addEventListener('change', (e) => this.toggleAccountSubTypeVisibility(e.target.value));
     document.getElementById('budgetForm')?.addEventListener('submit', (e) => this.handleBudgetSubmit(e));
     document.getElementById('piggyForm')?.addEventListener('submit', (e) => this.handlePiggySubmit(e));
     document.getElementById('adjustPiggyForm')?.addEventListener('submit', (e) => this.handleAdjustPiggySubmit(e));
@@ -485,14 +486,22 @@ class MyCostApp {
             <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 2px;">Saldo Saat Ini</div>
             <div class="account-balance-val">Rp ${Number(acc.balance).toLocaleString('id-ID')}</div>
           </div>
+          ${acc.monthly_admin_fee > 0 ? `
+            <div class="account-admin-fee-tag" title="Biaya admin dipotong otomatis tiap tanggal ${acc.admin_fee_date || 25}">
+              <i class="fa-regular fa-credit-card"></i> Admin: Rp ${Number(acc.monthly_admin_fee).toLocaleString('id-ID')}/bln <span style="font-size: 10px; opacity: 0.8;">(Tgl ${acc.admin_fee_date || 25})</span>
+            </div>
+          ` : ''}
           ${isSavings ? `
-            <div class="account-badge-row">
-              <span class="badge-interest">
-                <i class="fa-solid fa-percent"></i> ${interestRate}% p.a. Cair Harian
-              </span>
-              <button type="button" class="badge-sim-btn" onclick="event.stopPropagation(); app.openInterestSimulationModal(${acc.id})">
-                <i class="fa-solid fa-chart-line"></i> Simulasi Bunga
-              </button>
+            <div class="account-interest-pill" onclick="event.stopPropagation(); app.openInterestSimulationModal(${acc.id})" title="Klik untuk lihat simulasi bunga">
+              <div class="interest-pill-info">
+                <i class="fa-solid fa-bolt interest-pill-icon"></i>
+                <span class="interest-pill-rate">${interestRate}% <span>p.a.</span></span>
+                <span class="interest-pill-badge">Harian</span>
+              </div>
+              <div class="interest-pill-action">
+                <span>Simulasi</span>
+                <i class="fa-solid fa-chevron-right"></i>
+              </div>
             </div>
           ` : ''}
         </div>
@@ -523,37 +532,140 @@ class MyCostApp {
     if (settingsBox) settingsBox.style.display = subType === 'savings' ? 'block' : 'none';
   }
 
+  toggleAccountSubTypeVisibility(accType) {
+    const section = document.getElementById('accSubTypeSection');
+    if (!section) return;
+    const showSubType = (accType === 'bank' || accType === 'investment');
+    section.style.display = showSubType ? '' : 'none';
+    if (!showSubType) {
+      this.setAccountSubType('regular');
+    }
+  }
+
+  // ----------------------------------------------------
+  // DYNAMIC INTEREST TIERS BUILDER
+  // ----------------------------------------------------
+  renderInterestTierRows() {
+    const container = document.getElementById('interestTierRowsList');
+    if (!container) return;
+
+    if (!this.currentInterestTiers || this.currentInterestTiers.length === 0) {
+      this.currentInterestTiers = [{ min: 0, rate: 2.5 }];
+    }
+
+    container.innerHTML = this.currentInterestTiers.map((tier, idx) => `
+      <div class="tier-row-item" data-index="${idx}">
+        <div class="tier-row-header">
+          <span class="tier-row-badge">
+            <i class="fa-solid fa-layer-group"></i> Tier ${idx + 1} ${idx === 0 ? '(Dasar)' : ''}
+          </span>
+          ${this.currentInterestTiers.length > 1 ? `
+            <button type="button" class="tier-row-remove-btn" onclick="app.removeInterestTierRow(${idx})" title="Hapus Tier Ini">
+              <i class="fa-solid fa-trash-can"></i> Hapus
+            </button>
+          ` : ''}
+        </div>
+        <div class="tier-row-inputs">
+          <div class="form-group tier-input-group">
+            <label class="form-label">Saldo Minimum (Rp)</label>
+            <div class="input-icon-wrap">
+              <span class="input-prefix">Rp</span>
+              <input type="number" class="form-control tier-min-input" value="${tier.min}" placeholder="0" min="0" step="any" oninput="app.syncTierDataFromDom()">
+            </div>
+          </div>
+          <div class="form-group tier-input-group">
+            <label class="form-label">Suku Bunga (% p.a.)</label>
+            <div class="input-icon-wrap">
+              <input type="number" class="form-control tier-rate-input" value="${tier.rate}" placeholder="2.5" min="0" max="100" step="0.01" oninput="app.syncTierDataFromDom()">
+              <span class="input-prefix" style="left: auto; right: 12px; pointer-events: none;">%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  syncTierDataFromDom() {
+    const items = document.querySelectorAll('#interestTierRowsList .tier-row-item');
+    const tiers = [];
+    items.forEach((item) => {
+      const minInput = item.querySelector('.tier-min-input');
+      const rateInput = item.querySelector('.tier-rate-input');
+      const min = parseFloat(minInput?.value) || 0;
+      const rate = parseFloat(rateInput?.value) || 0;
+      tiers.push({ min, rate });
+    });
+    this.currentInterestTiers = tiers;
+  }
+
+  addInterestTierRow(customTier = null) {
+    this.syncTierDataFromDom();
+    if (customTier) {
+      this.currentInterestTiers.push(customTier);
+    } else {
+      const lastTier = this.currentInterestTiers[this.currentInterestTiers.length - 1];
+      const nextMin = lastTier ? (lastTier.min > 0 ? lastTier.min * 2 : 100000000) : 100000000;
+      const nextRate = lastTier ? (lastTier.rate + 1.0) : 3.5;
+      this.currentInterestTiers.push({ min: nextMin, rate: nextRate });
+    }
+    this.renderInterestTierRows();
+  }
+
+  removeInterestTierRow(idx) {
+    this.syncTierDataFromDom();
+    if (this.currentInterestTiers.length <= 1) return;
+    this.currentInterestTiers.splice(idx, 1);
+    this.renderInterestTierRows();
+  }
+
   applyInterestPreset(presetName) {
     this.setAccountSubType('savings');
     if (presetName === 'seabank') {
       document.getElementById('accName').value = 'Seabank';
       document.getElementById('accType').value = 'bank';
-      document.getElementById('accInterestRateDefault').value = '2.5';
-      document.getElementById('accInterestRateTier').value = '3.5';
-      document.getElementById('accInterestTierThreshold').value = '150000000';
-      this.showToast('Preset SeaBank (2,5% & 3,5% p.a.) diterapkan', 'info');
+      this.currentInterestTiers = [
+        { min: 0, rate: 2.5 },
+        { min: 150000000, rate: 3.5 }
+      ];
+      this.renderInterestTierRows();
+      this.showToast('Preset SeaBank (2 Tier: 2,5% & 3,5% p.a.) diterapkan', 'info');
     } else if (presetName === 'jago') {
       document.getElementById('accName').value = 'Bank Jago';
       document.getElementById('accType').value = 'bank';
-      document.getElementById('accInterestRateDefault').value = '3.75';
-      document.getElementById('accInterestRateTier').value = '3.75';
-      document.getElementById('accInterestTierThreshold').value = '0';
-      this.showToast('Preset Bank Jago (3,75% p.a.) diterapkan', 'info');
+      this.currentInterestTiers = [
+        { min: 0, rate: 3.75 }
+      ];
+      this.renderInterestTierRows();
+      this.showToast('Preset Bank Jago (Flat 3,75% p.a.) diterapkan', 'info');
     } else if (presetName === 'neobank') {
       document.getElementById('accName').value = 'NeoBank / BNC';
       document.getElementById('accType').value = 'bank';
-      document.getElementById('accInterestRateDefault').value = '5.0';
-      document.getElementById('accInterestRateTier').value = '5.0';
-      document.getElementById('accInterestTierThreshold').value = '0';
-      this.showToast('Preset NeoBank (5,0% p.a.) diterapkan', 'info');
+      this.currentInterestTiers = [
+        { min: 0, rate: 2.5 },
+        { min: 50000000, rate: 4.0 },
+        { min: 150000000, rate: 5.0 }
+      ];
+      this.renderInterestTierRows();
+      this.showToast('Preset NeoBank (3 Tier: 2,5%, 4,0% & 5,0% p.a.) diterapkan', 'info');
     } else if (presetName === 'custom') {
-      document.getElementById('accInterestRateDefault').focus();
-      this.showToast('Silakan atur suku bunga dan batas saldo sesuai regulasi bank Anda', 'info');
+      this.currentInterestTiers = [
+        { min: 0, rate: 2.5 }
+      ];
+      this.renderInterestTierRows();
+      this.showToast('Silakan atur atau tambah tier suku bunga sesuai kebutuhan Anda', 'info');
     }
   }
 
-  applySeabankPreset() {
-    this.applyInterestPreset('seabank');
+  applyAdminFeePreset(amount, date = 25) {
+    const feeInput = document.getElementById('accMonthlyAdminFee');
+    const dateInput = document.getElementById('accAdminFeeDate');
+    if (feeInput) feeInput.value = amount;
+    if (dateInput) dateInput.value = date;
+    if (amount === 0) {
+      this.showToast('Biaya admin bulanan diatur ke Rp 0 (Bebas Biaya Admin)', 'info');
+    } else {
+      this.showToast(`Biaya admin bulanan diatur ke Rp ${Number(amount).toLocaleString('id-ID')} (Tgl ${date})`, 'info');
+    }
   }
 
   openAccountModal() {
@@ -561,11 +673,18 @@ class MyCostApp {
     document.getElementById('accountModalTitle').textContent = 'Tambah Rekening / Dompet';
     document.getElementById('accName').value = '';
     document.getElementById('accType').value = 'bank';
+    this.toggleAccountSubTypeVisibility('bank');
     document.getElementById('accBalance').value = '0';
     document.getElementById('accNumber').value = '';
-    document.getElementById('accInterestRateDefault').value = '2.5';
-    document.getElementById('accInterestRateTier').value = '3.5';
-    document.getElementById('accInterestTierThreshold').value = '150000000';
+    const feeInput = document.getElementById('accMonthlyAdminFee');
+    const dateInput = document.getElementById('accAdminFeeDate');
+    if (feeInput) feeInput.value = '0';
+    if (dateInput) dateInput.value = '25';
+    this.currentInterestTiers = [
+      { min: 0, rate: 2.5 },
+      { min: 150000000, rate: 3.5 }
+    ];
+    this.renderInterestTierRows();
     this.setAccountSubType('regular');
     this.openModal('accountModal');
   }
@@ -578,15 +697,35 @@ class MyCostApp {
     document.getElementById('accountModalTitle').textContent = 'Edit Rekening / Dompet';
     document.getElementById('accName').value = acc.name;
     document.getElementById('accType').value = acc.type;
+    this.toggleAccountSubTypeVisibility(acc.type);
     document.getElementById('accBalance').value = acc.balance;
     document.getElementById('accNumber').value = acc.account_number || '';
+    const feeInput = document.getElementById('accMonthlyAdminFee');
+    const dateInput = document.getElementById('accAdminFeeDate');
+    if (feeInput) feeInput.value = acc.monthly_admin_fee || 0;
+    if (dateInput) dateInput.value = acc.admin_fee_date || 25;
     
     const isSavings = acc.account_sub_type === 'savings' || acc.has_interest;
     this.setAccountSubType(isSavings ? 'savings' : 'regular');
 
-    document.getElementById('accInterestRateDefault').value = acc.interest_rate_default || 2.5;
-    document.getElementById('accInterestRateTier').value = acc.interest_rate_tier || (acc.interest_rate_default || 2.5);
-    document.getElementById('accInterestTierThreshold').value = acc.interest_tier_threshold || 0;
+    if (acc.interest_tiers && Array.isArray(acc.interest_tiers) && acc.interest_tiers.length > 0) {
+      this.currentInterestTiers = JSON.parse(JSON.stringify(acc.interest_tiers));
+    } else {
+      const defRate = acc.interest_rate_default || 2.5;
+      const tierRate = acc.interest_rate_tier || defRate;
+      const threshold = acc.interest_tier_threshold || 0;
+      if (threshold > 0 && tierRate !== defRate) {
+        this.currentInterestTiers = [
+          { min: 0, rate: defRate },
+          { min: threshold, rate: tierRate }
+        ];
+      } else {
+        this.currentInterestTiers = [
+          { min: 0, rate: defRate }
+        ];
+      }
+    }
+    this.renderInterestTierRows();
 
     this.openModal('accountModal');
   }
@@ -594,19 +733,17 @@ class MyCostApp {
   async handleAccountSubmit(e) {
     e.preventDefault();
     const isSavings = (this.currentAccountSubType === 'savings');
-    const defaultRate = parseFloat(document.getElementById('accInterestRateDefault').value) || 0;
-    const tierRate = parseFloat(document.getElementById('accInterestRateTier').value) || defaultRate;
-    const threshold = parseFloat(document.getElementById('accInterestTierThreshold').value) || 0;
+    this.syncTierDataFromDom();
 
     const payload = {
       name: document.getElementById('accName').value,
       type: document.getElementById('accType').value,
       account_sub_type: isSavings ? 'savings' : 'regular',
       has_interest: isSavings,
-      interest_rate_default: defaultRate,
-      interest_rate_tier: tierRate,
-      interest_tier_threshold: threshold,
+      interest_tiers: isSavings ? this.currentInterestTiers : null,
       interest_period: 'daily',
+      monthly_admin_fee: parseFloat(document.getElementById('accMonthlyAdminFee')?.value) || 0,
+      admin_fee_date: parseInt(document.getElementById('accAdminFeeDate')?.value) || 25,
       balance: parseFloat(document.getElementById('accBalance').value) || 0,
       account_number: document.getElementById('accNumber').value
     };
@@ -682,18 +819,18 @@ class MyCostApp {
     if (dailyIntEl) dailyIntEl.textContent = sim.daily.net_formatted;
 
     if (badgeEl) {
-      if (!sim.has_tier) {
-        badgeEl.textContent = `Suku Bunga ${sim.default_rate}% p.a.`;
-        badgeEl.style.background = '#10b981';
-        badgeEl.style.color = '#ffffff';
-      } else if (sim.is_tier_higher) {
-        badgeEl.textContent = `Tier Tertinggi (${sim.tier_rate}% p.a.)`;
+      if (sim.next_tier_goal) {
+        badgeEl.textContent = sim.next_tier_goal.badge_text;
+        badgeEl.style.background = '#f59e0b';
+        badgeEl.style.color = '#1e293b';
+      } else if (sim.is_highest_tier && sim.tiers && sim.tiers.length > 1) {
+        badgeEl.textContent = `Tier Tertinggi (${sim.active_rate}% p.a.)`;
         badgeEl.style.background = '#10b981';
         badgeEl.style.color = '#ffffff';
       } else {
-        badgeEl.textContent = `Top up lagi, dapat ${sim.tier_rate}%`;
-        badgeEl.style.background = '#f59e0b';
-        badgeEl.style.color = '#1e293b';
+        badgeEl.textContent = `Suku Bunga ${sim.active_rate}% p.a.`;
+        badgeEl.style.background = '#10b981';
+        badgeEl.style.color = '#ffffff';
       }
     }
 
@@ -701,10 +838,10 @@ class MyCostApp {
       tableBody.innerHTML = sim.tiers.map((t) => `
         <tr class="${t.is_active ? 'active-tier' : ''}">
           <td>
-            <div>${t.label}</div>
-            ${t.is_active ? `<small style="font-size: 10px; color: var(--income); font-weight: 700;">(Tier Suku Bunga Aktif Saat Ini)</small>` : ''}
+            <div style="font-weight: 600;">${t.label}</div>
+            ${t.is_active ? `<small style="font-size: 10px; color: #10b981; font-weight: 700;">(Tier Suku Bunga Aktif Saat Ini)</small>` : ''}
           </td>
-          <td style="text-align: right; font-weight: 700; color: ${t.is_active ? 'var(--primary-light)' : 'var(--text-muted)'};">
+          <td style="text-align: right; font-weight: 800; color: ${t.is_active ? '#34d399' : 'var(--text-muted)'};">
             ${t.rate}
           </td>
         </tr>

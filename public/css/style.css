@@ -1019,6 +1019,13 @@ h1, h2, h3, h4, .brand-font {
   white-space: nowrap;
 }
 
+.type-toggle-btn.active {
+  background: var(--primary-gradient);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+}
+
 .type-toggle-btn.active.expense {
   background: var(--expense-gradient);
   color: #fff;
@@ -1907,67 +1914,239 @@ h1, h2, h3, h4, .brand-font {
 }
 
 .preset-badge-btn {
-  background: var(--primary-gradient);
-  color: #fff;
-  border: none;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
   border-radius: 20px;
-  padding: 4px 10px;
+  padding: 5px 11px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
   transition: var(--transition);
 }
 
 .preset-badge-btn:hover {
-  transform: scale(1.04);
+  background: rgba(16, 185, 129, 0.15);
+  border-color: var(--primary);
+  color: #34d399;
+  transform: translateY(-1px);
 }
 
-/* Badges on Account Card */
-.account-badge-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px dashed var(--border-color);
+/* Dynamic Tier Builder in Account Modal */
+.tier-builder-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 12px;
 }
 
-.badge-interest {
+.btn-add-tier-pill {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--primary-light);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 20px;
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  background: rgba(16, 185, 129, 0.15);
-  color: var(--primary-light);
-  font-size: 11px;
-  font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 12px;
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  transition: var(--transition);
 }
 
-.badge-sim-btn {
-  background: none;
+.btn-add-tier-pill:hover {
+  background: rgba(16, 185, 129, 0.28);
+  border-color: var(--primary);
+  transform: scale(1.03);
+}
+
+.interest-tier-rows-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tier-row-item {
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
-  color: var(--text-secondary);
-  font-size: 11px;
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  transition: var(--transition);
+}
+
+.tier-row-item:hover {
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.tier-row-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.tier-row-badge {
+  font-size: 10px;
   font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 12px;
+  color: var(--primary-light);
+  background: rgba(16, 185, 129, 0.12);
+  padding: 2px 7px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tier-row-remove-btn {
+  background: none;
+  border: none;
+  color: #ef4444;
+  font-size: 10px;
+  font-weight: 700;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  transition: var(--transition);
+  opacity: 0.8;
+  transition: opacity 0.2s;
 }
 
-.badge-sim-btn:hover {
-  background: rgba(16, 185, 129, 0.15);
-  border-color: var(--primary);
-  color: var(--primary-light);
+.tier-row-remove-btn:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+.tier-row-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.tier-input-group {
+  margin-bottom: 0 !important;
+}
+
+.tier-input-group .form-control {
+  font-size: 13px !important;
+  padding: 6px 10px 6px 32px !important;
+}
+
+.tier-input-group .input-prefix {
+  font-size: 11px;
+}
+
+@media (max-width: 540px) {
+  .tier-row-inputs {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Account Admin Fee Tag on Card */
+.account-admin-fee-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  padding: 2px 8px;
+  border-radius: 8px;
+}
+
+/* Modern Fintech Interest Pill on Account Card */
+.account-interest-pill {
+  margin-top: 14px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(5, 150, 105, 0.06) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.account-interest-pill::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(52, 211, 153, 0.5), transparent);
+}
+
+.account-interest-pill:hover {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.14) 100%);
+  border-color: rgba(52, 211, 153, 0.55);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.2);
+}
+
+.interest-pill-info {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.interest-pill-icon {
+  font-size: 11px;
+  color: #34d399;
+  filter: drop-shadow(0 0 4px rgba(52, 211, 153, 0.6));
+}
+
+.interest-pill-rate {
+  font-size: 13px;
+  font-weight: 800;
+  color: #f8fafc;
+  letter-spacing: -0.2px;
+}
+
+.interest-pill-rate span {
+  font-size: 10px;
+  font-weight: 600;
+  color: #34d399;
+}
+
+.interest-pill-badge {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: rgba(16, 185, 129, 0.25);
+  color: #6ee7b7;
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.interest-pill-action {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.account-interest-pill:hover .interest-pill-action {
+  color: #34d399;
+  transform: translateX(2px);
+}
+
+.interest-pill-action i {
+  font-size: 9px;
 }
 
 /* SeaBank Simulation Modal Design */
@@ -2114,5 +2293,60 @@ h1, h2, h3, h4, .brand-font {
   font-size: 12px;
   font-weight: 800;
   color: var(--primary-light);
+}
+
+/* ======================================================== */
+/* MOBILE POLISH & ACCOUNT MODAL IMPROVEMENTS               */
+/* ======================================================== */
+
+/* Smooth toggle for account sub-type section */
+#accSubTypeSection {
+  transition: opacity 0.2s ease;
+}
+
+/* Interest rate grid responsive class */
+.interest-rate-grid {
+  display: grid;
+}
+
+/* Better mobile form layout for account modal */
+@media (max-width: 768px) {
+  .interest-rate-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .preset-buttons-wrap {
+    gap: 5px !important;
+  }
+
+  .preset-badge-btn {
+    font-size: 10px;
+    padding: 4px 8px;
+  }
+
+  .interest-settings-box {
+    padding: 12px;
+  }
+
+  /* Prevent iOS auto-zoom on input focus */
+  .modal-content .form-control {
+    font-size: 16px;
+  }
+
+  /* Better type toggle buttons on mobile */
+  .type-toggle-group {
+    gap: 6px;
+  }
+}
+
+/* Extra small screen adjustments */
+@media (max-width: 380px) {
+  .status-badge {
+    display: none;
+  }
+
+  .user-name-label {
+    display: none;
+  }
 }
 

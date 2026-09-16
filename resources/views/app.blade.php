@@ -516,6 +516,7 @@
           </select>
         </div>
 
+        <div id="accSubTypeSection">
         <!-- Account Category: Saldo Biasa vs Tabungan Berbunga -->
         <div class="form-group">
           <label class="form-label">Tipe Saldo Tabungan</label>
@@ -542,50 +543,91 @@
                 Konfigurasi Suku Bunga Tabungan</strong>
               <span style="font-size: 10px; color: var(--text-muted);">Pilih Preset Cepat:</span>
             </div>
-            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+            <div class="preset-buttons-wrap" style="display: flex; flex-wrap: wrap; gap: 6px;">
               <button type="button" class="preset-badge-btn" onclick="app.applyInterestPreset('seabank')">
-                <i class="fa-solid fa-building-columns"></i> SeaBank (2.5% - 3.5%)
+                <i class="fa-solid fa-building-columns"></i> SeaBank (2 Tier)
               </button>
               <button type="button" class="preset-badge-btn" onclick="app.applyInterestPreset('jago')">
-                <i class="fa-solid fa-piggy-bank"></i> Bank Jago (3.75%)
+                <i class="fa-solid fa-piggy-bank"></i> Bank Jago (Flat)
               </button>
               <button type="button" class="preset-badge-btn" onclick="app.applyInterestPreset('neobank')">
-                <i class="fa-solid fa-coins"></i> NeoBank (5.0%)
+                <i class="fa-solid fa-coins"></i> NeoBank (3 Tier)
               </button>
-              <button type="button" class="preset-badge-btn"
-                style="background: var(--bg-surface); border: 1px solid var(--border-color); color: var(--text-secondary);"
-                onclick="app.applyInterestPreset('custom')">
+              <button type="button" class="preset-badge-btn" onclick="app.applyInterestPreset('custom')">
                 <i class="fa-solid fa-pen"></i> Kustom
               </button>
             </div>
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
-            <div class="form-group" style="margin-bottom: 0;">
-              <label class="form-label" style="font-size: 11px;">Suku Bunga Dasar (% p.a.)</label>
-              <input type="number" id="accInterestRateDefault" class="form-control" placeholder="2.5" step="0.01"
-                min="0" value="2.5">
+          <!-- Dynamic Tier Builder -->
+          <div class="tier-builder-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <span style="font-size: 11px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-layer-group" style="color: var(--primary);"></i> Skema Tingkatan (Tier) Bunga
+              </span>
+              <button type="button" class="btn-add-tier-pill" onclick="app.addInterestTierRow()">
+                <i class="fa-solid fa-plus"></i> Tambah Tier
+              </button>
             </div>
-            <div class="form-group" style="margin-bottom: 0;">
-              <label class="form-label" style="font-size: 11px;">Suku Bunga Tier Tinggi (% p.a.)</label>
-              <input type="number" id="accInterestRateTier" class="form-control" placeholder="3.5" step="0.01" min="0"
-                value="3.5">
+
+            <div id="interestTierRowsList" class="interest-tier-rows-list">
+              <!-- Dynamically populated tier rows -->
+            </div>
+            
+            <div style="font-size: 10px; color: var(--text-muted); margin-top: 8px; line-height: 1.4;">
+              <i class="fa-solid fa-circle-info" style="color: var(--primary-light);"></i> Anda bisa menambah tier sebanyak yang diinginkan. Bunga akan otomatis aktif sesuai tier saldo Anda.
             </div>
           </div>
+          <!-- Monthly Admin Fee Section -->
+          <div id="accMonthlyAdminFeeSection" class="monthly-admin-box" style="margin-top: 12px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <strong style="font-size: 12px; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                <i class="fa-regular fa-credit-card" style="color: #f59e0b;"></i> Biaya Admin Bulanan & Kartu Debit
+              </strong>
+              <span style="font-size: 10px; color: var(--text-muted);">Auto-Pengeluaran</span>
+            </div>
 
-          <div class="form-group" style="margin-bottom: 0;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-              <label class="form-label" style="font-size: 11px; margin-bottom: 0;">Batas Nominal Saldo untuk Naik Bunga
-                (Rp)</label>
-              <span style="font-size: 10px; color: var(--text-muted);">(Isi 0 jika tanpa tier)</span>
+            <!-- Preset Cepat Kartu Debit Bank -->
+            <div style="margin-bottom: 10px;">
+              <span style="font-size: 10px; color: var(--text-muted); display: block; margin-bottom: 4px;">Preset Kartu Populer:</span>
+              <div class="preset-buttons-wrap" style="display: flex; flex-wrap: wrap; gap: 5px;">
+                <button type="button" class="preset-badge-btn" onclick="app.applyAdminFeePreset(0)">
+                  <i class="fa-solid fa-gift"></i> Rp 0 (SeaBank/Jago)
+                </button>
+                <button type="button" class="preset-badge-btn" onclick="app.applyAdminFeePreset(12000, 25)">
+                  <i class="fa-solid fa-credit-card"></i> Rp 12.000 (BRI)
+                </button>
+                <button type="button" class="preset-badge-btn" onclick="app.applyAdminFeePreset(14000, 25)">
+                  <i class="fa-solid fa-credit-card"></i> Rp 14.000 (BCA Silver)
+                </button>
+                <button type="button" class="preset-badge-btn" onclick="app.applyAdminFeePreset(16000, 25)">
+                  <i class="fa-solid fa-credit-card"></i> Rp 16.000 (BCA Gold)
+                </button>
+                <button type="button" class="preset-badge-btn" onclick="app.applyAdminFeePreset(12500, 25)">
+                  <i class="fa-solid fa-credit-card"></i> Rp 12.500 (Mandiri)
+                </button>
+              </div>
             </div>
-            <div class="input-icon-wrap">
-              <span class="input-prefix">Rp</span>
-              <input type="number" id="accInterestTierThreshold" class="form-control" placeholder="150000000" step="any"
-                min="0" value="150000000">
+
+            <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 8px;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-size: 10px;">Biaya Admin per Bulan (Rp)</label>
+                <div class="input-icon-wrap">
+                  <span class="input-prefix" style="font-size: 10px;">Rp</span>
+                  <input type="number" id="accMonthlyAdminFee" class="form-control" placeholder="0" min="0" step="any" value="0">
+                </div>
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-size: 10px;">Tgl Potong (1 - 31)</label>
+                <input type="number" id="accAdminFeeDate" class="form-control" placeholder="25" min="1" max="31" value="25">
+              </div>
             </div>
+            <small style="display: block; font-size: 10px; color: var(--text-muted); margin-top: 6px;">
+              <i class="fa-solid fa-circle-info"></i> Otomatis dicatat sebagai <strong>Pengeluaran</strong> (Biaya Admin Bank) setiap tanggal yang ditentukan.
+            </small>
           </div>
         </div>
+        </div><!-- /accSubTypeSection -->
 
         <div class="form-group">
           <label class="form-label">Saldo Saat Ini (Rp)</label>
