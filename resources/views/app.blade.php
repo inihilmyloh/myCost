@@ -895,98 +895,106 @@
     </div>
   </div>
 
-  <!-- Modal 8: Simulasi Pendapatan Bunga Harian (SeaBank Style) -->
+  <!-- Modal 8: Simulasi Pendapatan Bunga Harian (Ultra-Clean Fintech Style) -->
   <div id="interestSimulationModal" class="modal-overlay">
-    <div class="modal-content" style="max-width: 480px;">
-      <div class="modal-header">
-        <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
-          <i class="fa-solid fa-percent" style="color: var(--primary);"></i> Simulasi Pendapatan Bunga Harian
-        </h3>
-        <button class="close-btn"><i class="fa-solid fa-xmark"></i></button>
+    <div class="modal-content sim-modal-custom" style="max-width: 500px; padding: 0; overflow: hidden; border-radius: 20px;">
+      <!-- Header -->
+      <div class="modal-header sim-modal-header" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); background: rgba(10, 31, 24, 0.95);">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="sim-header-icon">
+            <i class="fa-solid fa-chart-line"></i>
+          </div>
+          <div>
+            <h3 class="modal-title" style="font-size: 15px; margin: 0; line-height: 1.2;">Simulasi Bunga Tabungan</h3>
+            <span style="font-size: 11px; color: var(--text-muted);">Estimasi & Skema Bunga Harian</span>
+          </div>
+        </div>
+        <button class="close-btn" onclick="app.closeModal('interestSimulationModal')"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
-      <div class="seabank-sim-body">
-        <!-- Account Info Pill -->
+      <div class="seabank-sim-body" style="padding: 18px 20px; max-height: calc(88vh - 70px); overflow-y: auto;">
+        <!-- Account Info Header Card -->
         <div class="sim-account-header">
           <div class="sim-account-title">
             <i class="fa-solid fa-building-columns" style="color: #10b981;"></i>
             <span id="simAccName">Seabank</span>
           </div>
-          <div id="simAccNumber" class="sim-account-num">No. Rek: 9012 9745 4977</div>
+          <div id="simAccNumber" class="sim-account-num">9012 9745 4977</div>
         </div>
 
-        <!-- Main Realtime Metrics Card -->
-        <div class="sim-stat-card">
-          <div class="sim-row">
-            <span class="sim-lbl">Saldo Tersedia</span>
-            <strong id="simCurrentBalance" class="sim-val-primary">Rp 196.007</strong>
+        <!-- Hero Metric Card -->
+        <div class="sim-hero-card">
+          <div class="sim-hero-top">
+            <span class="sim-hero-lbl">Estimasi Bunga Harian Bersih</span>
+            <span class="sim-hero-badge"><i class="fa-solid fa-bolt"></i> Cair Harian</span>
           </div>
-          <div class="sim-row">
-            <span class="sim-lbl">
-              Suku Bunga Saat Ini
-              <span id="simTierBadge" class="sim-tier-badge">Top up lagi, dapat 3,5%</span>
-            </span>
-            <strong id="simActiveRate" class="sim-rate-val" style="color: var(--income);">2,5% p.a.</strong>
+          <div class="sim-hero-value-wrap">
+            <strong id="simDailyInterest" class="sim-hero-value">Rp 13</strong>
+            <span class="sim-hero-sub">/ hari (otomatis masuk ke saldo)</span>
           </div>
-          <div class="sim-row" style="border-top: 1px dashed var(--border-color); padding-top: 10px; margin-top: 6px;">
-            <span class="sim-lbl" style="font-weight: 700; color: var(--text-primary);">Estimasi Pendapatan Bunga
-              Harian</span>
-            <strong id="simDailyInterest" class="sim-interest-val">Rp 13</strong>
+          
+          <div class="sim-stats-subgrid">
+            <div class="sim-stat-col">
+              <span class="sim-stat-lbl">Saldo Tabungan</span>
+              <strong id="simCurrentBalance" class="sim-stat-val">Rp 196.007</strong>
+            </div>
+            <div class="sim-stat-col" style="text-align: right;">
+              <span class="sim-stat-lbl">Suku Bunga Aktif</span>
+              <strong id="simActiveRate" class="sim-stat-val" style="color: #34d399;">2,5% p.a.</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Next Tier Banner (Shown only when eligible for next tier) -->
+        <div id="simNextTierBanner" class="sim-next-tier-banner" style="display: none;">
+          <div class="sim-banner-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
+          <div id="simNextTierText" class="sim-banner-text">
+            Top up <strong>Rp 149.803.993</strong> lagi untuk dapat bunga <strong>3,5% p.a.</strong>
           </div>
         </div>
 
         <!-- Dynamic Bank Tier Table -->
         <div class="sim-tier-table-wrap">
-          <div
-            style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">
-            Skema Suku Bunga Tabungan
+          <div class="sim-section-header">
+            <span class="sim-section-title"><i class="fa-solid fa-layer-group"></i> Skema Suku Bunga Tabungan</span>
           </div>
-          <table class="sim-tier-table">
-            <thead>
-              <tr>
-                <th>Kategori Saldo</th>
-                <th style="text-align: right;">Suku Bunga*</th>
-              </tr>
-            </thead>
-            <tbody id="simTierTableBody">
-              <!-- Rendered dynamically based on account tier rules -->
-            </tbody>
-          </table>
-          <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">
-            *Bunga dihitung harian & cair otomatis. Bebas pajak PPh untuk saldo &le; Rp 7.500.000 (PPh 20% jika &gt; Rp
-            7.5jt).
+          <div class="sim-tier-cards-list" id="simTierTableBody">
+            <!-- Dynamic cards rendered here -->
+          </div>
+          <div class="sim-tax-note">
+            <i class="fa-solid fa-circle-info"></i> Bebas pajak untuk saldo &le; Rp 7,5 jt (Pajak PPh 20% otomatis dipotong jika saldo &gt; Rp 7,5 jt).
           </div>
         </div>
 
         <!-- Custom Simulation Calculator -->
         <div class="sim-custom-calc-box">
-          <div style="font-size: 12px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">
-            <i class="fa-solid fa-calculator" style="color: var(--primary);"></i> Coba Simulasi Saldo Lain
+          <div class="sim-section-header" style="margin-bottom: 10px;">
+            <span class="sim-section-title"><i class="fa-solid fa-calculator"></i> Kalkulator Simulasi Saldo Lain</span>
           </div>
-          <div class="input-icon-wrap" style="margin-bottom: 10px;">
+          <div class="input-icon-wrap" style="margin-bottom: 12px;">
             <span class="input-prefix">Rp</span>
             <input type="number" id="customSimInput" class="form-control" placeholder="10000000" step="any" min="0"
-              oninput="app.onCustomSimulateInput()">
+              oninput="app.onCustomSimulateInput()" style="font-size: 15px; font-weight: 700;">
           </div>
 
           <div class="sim-breakdown-grid">
             <div class="sim-mini-box">
-              <div class="sim-mini-lbl">Harian (1 Hari)</div>
+              <div class="sim-mini-lbl">1 Hari</div>
               <div id="simCustomDaily" class="sim-mini-val">Rp 0</div>
             </div>
             <div class="sim-mini-box">
-              <div class="sim-mini-lbl">Bulanan (30 Hari)</div>
+              <div class="sim-mini-lbl">30 Hari (Bulan)</div>
               <div id="simCustomMonthly" class="sim-mini-val">Rp 0</div>
             </div>
             <div class="sim-mini-box">
-              <div class="sim-mini-lbl">Tahunan (365 Hari)</div>
+              <div class="sim-mini-lbl">365 Hari (Tahun)</div>
               <div id="simCustomYearly" class="sim-mini-val">Rp 0</div>
             </div>
           </div>
         </div>
 
         <!-- Actions -->
-        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 18px;">
+        <div class="sim-actions-wrap" style="display: flex; flex-direction: column; gap: 8px; margin-top: 4px;">
           <button type="button" id="btnManualAccrueNow" class="btn-primary" onclick="app.manualAccrueCurrentAccount()">
             <i class="fa-solid fa-bolt"></i> Hitung & Cairkan Bunga Sekarang
           </button>

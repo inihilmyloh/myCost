@@ -2149,18 +2149,61 @@ h1, h2, h3, h4, .brand-font {
   font-size: 9px;
 }
 
-/* SeaBank Simulation Modal Design */
+/* ======================================================== */
+/* ULTRA-PREMIUM FINTECH SIMULATION MODAL DESIGN            */
+/* ======================================================== */
+
+.sim-modal-custom {
+  background: var(--bg-surface) !important;
+  border: 1px solid rgba(16, 185, 129, 0.25) !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 30px rgba(16, 185, 129, 0.15) !important;
+}
+
+.sim-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sim-header-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #34d399;
+  font-size: 15px;
+}
+
 .seabank-sim-body {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(16, 185, 129, 0.3) transparent;
+}
+
+.seabank-sim-body::-webkit-scrollbar {
+  width: 5px;
+}
+
+.seabank-sim-body::-webkit-scrollbar-thumb {
+  background: rgba(16, 185, 129, 0.3);
+  border-radius: 10px;
+}
+
+.seabank-sim-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.6);
 }
 
 .sim-account-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: var(--bg-surface);
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
   padding: 10px 14px;
@@ -2178,91 +2221,240 @@ h1, h2, h3, h4, .brand-font {
 .sim-account-num {
   font-size: 12px;
   color: var(--text-muted);
+  font-family: monospace;
 }
 
-.sim-stat-card {
-  background: linear-gradient(145deg, rgba(16, 185, 129, 0.12), rgba(6, 182, 212, 0.05));
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  border-radius: var(--radius-md);
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+/* Hero Metric Card */
+.sim-hero-card {
+  background: linear-gradient(135deg, rgba(6, 78, 59, 0.35) 0%, rgba(10, 31, 24, 0.9) 100%);
+  border: 1px solid rgba(52, 211, 153, 0.3);
+  border-radius: 16px;
+  padding: 16px 18px;
+  position: relative;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
-.sim-row {
+.sim-hero-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 6px;
 }
 
-.sim-lbl {
-  font-size: 12px;
-  color: var(--text-secondary);
-  display: flex;
+.sim-hero-lbl {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sim-hero-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.18);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  padding: 2px 8px;
+  border-radius: 10px;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 
-.sim-val-primary {
-  font-size: 16px;
-  font-weight: 800;
-  color: var(--text-primary);
+.sim-hero-value-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 14px;
 }
 
-.sim-rate-val {
+.sim-hero-value {
+  font-size: 26px;
+  font-weight: 900;
+  color: #34d399;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+  text-shadow: 0 0 20px rgba(52, 211, 153, 0.4);
+}
+
+.sim-hero-sub {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.sim-stats-subgrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 10px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.sim-stat-lbl {
+  display: block;
+  font-size: 10px;
+  color: #64748b;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.sim-stat-val {
   font-size: 14px;
   font-weight: 800;
+  color: #f8fafc;
 }
 
-.sim-interest-val {
-  font-size: 18px;
-  font-weight: 900;
-  color: var(--income);
+/* Next Tier Banner */
+.sim-next-tier-banner {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.08) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-.sim-tier-badge {
-  background: #f59e0b;
-  color: #1e293b;
-  font-size: 10px;
-  font-weight: 800;
-  padding: 2px 6px;
-  border-radius: 10px;
+.sim-banner-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(245, 158, 11, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f59e0b;
+  font-size: 12px;
+  flex-shrink: 0;
 }
 
+.sim-banner-text {
+  font-size: 11px;
+  color: #fde68a;
+  line-height: 1.4;
+}
+
+.sim-banner-text strong {
+  color: #fbbf24;
+}
+
+/* Tier Table / Cards List */
 .sim-tier-table-wrap {
-  background: var(--bg-surface);
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 14px;
 }
 
-.sim-tier-table {
-  width: 100%;
-  border-collapse: collapse;
+.sim-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
 }
 
-.sim-tier-table th {
-  font-size: 11px;
+.sim-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sim-section-title i {
+  color: var(--primary);
+}
+
+.sim-tier-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sim-tier-row-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 10px 12px;
+  transition: var(--transition);
+}
+
+.sim-tier-row-card.active-tier-card {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(52, 211, 153, 0.45);
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.1);
+}
+
+.tier-card-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tier-card-badge {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
   color: var(--text-muted);
+}
+
+.active-tier-card .tier-card-badge {
+  color: var(--primary-light);
+}
+
+.tier-card-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.tier-card-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.tier-card-rate {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text-secondary);
+}
+
+.active-tier-card .tier-card-rate {
+  color: #34d399;
+}
+
+.tier-active-pill {
+  font-size: 9px;
   font-weight: 700;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border-color);
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  padding: 1px 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
 }
 
-.sim-tier-table td {
-  padding: 10px 0;
-  font-size: 13px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+.sim-tax-note {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 10px;
+  line-height: 1.4;
 }
 
-.sim-tier-table tr.active-tier td {
-  background: rgba(16, 185, 129, 0.08);
-  font-weight: 700;
-}
-
+/* Custom Simulation Calculator Box */
 .sim-custom-calc-box {
-  background: var(--bg-surface);
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 14px;
@@ -2275,11 +2467,17 @@ h1, h2, h3, h4, .brand-font {
 }
 
 .sim-mini-box {
-  background: var(--bg-card);
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  padding: 8px;
+  border-radius: 10px;
+  padding: 8px 6px;
   text-align: center;
+  transition: var(--transition);
+}
+
+.sim-mini-box:hover {
+  border-color: rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.06);
 }
 
 .sim-mini-lbl {
@@ -2290,9 +2488,9 @@ h1, h2, h3, h4, .brand-font {
 }
 
 .sim-mini-val {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
-  color: var(--primary-light);
+  color: #34d399;
 }
 
 /* ======================================================== */
@@ -2302,6 +2500,39 @@ h1, h2, h3, h4, .brand-font {
 /* Smooth toggle for account sub-type section */
 #accSubTypeSection {
   transition: opacity 0.2s ease;
+}
+
+/* Better mobile layout for simulation modal */
+@media (max-width: 540px) {
+  .sim-modal-header {
+    padding: 12px 16px !important;
+  }
+
+  .seabank-sim-body {
+    padding: 14px 16px !important;
+    gap: 12px !important;
+  }
+
+  .sim-hero-card {
+    padding: 14px !important;
+  }
+
+  .sim-hero-value {
+    font-size: 22px !important;
+  }
+
+  .sim-stats-subgrid {
+    padding: 8px 10px !important;
+  }
+
+  .sim-breakdown-grid {
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+  }
+
+  .sim-mini-val {
+    font-size: 11px !important;
+  }
 }
 
 /* Interest rate grid responsive class */

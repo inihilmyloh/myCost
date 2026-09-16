@@ -818,33 +818,30 @@ class MyCostApp {
     if (actRateEl) actRateEl.textContent = `${sim.active_rate}% p.a.`;
     if (dailyIntEl) dailyIntEl.textContent = sim.daily.net_formatted;
 
-    if (badgeEl) {
-      if (sim.next_tier_goal) {
-        badgeEl.textContent = sim.next_tier_goal.badge_text;
-        badgeEl.style.background = '#f59e0b';
-        badgeEl.style.color = '#1e293b';
-      } else if (sim.is_highest_tier && sim.tiers && sim.tiers.length > 1) {
-        badgeEl.textContent = `Tier Tertinggi (${sim.active_rate}% p.a.)`;
-        badgeEl.style.background = '#10b981';
-        badgeEl.style.color = '#ffffff';
-      } else {
-        badgeEl.textContent = `Suku Bunga ${sim.active_rate}% p.a.`;
-        badgeEl.style.background = '#10b981';
-        badgeEl.style.color = '#ffffff';
+    const nextTierBanner = document.getElementById('simNextTierBanner');
+    const nextTierText = document.getElementById('simNextTierText');
+
+    if (sim.next_tier_goal) {
+      if (nextTierBanner) nextTierBanner.style.display = 'flex';
+      if (nextTierText) {
+        nextTierText.innerHTML = `Top up <strong>${sim.next_tier_goal.amount_needed_formatted}</strong> lagi untuk dapat bunga <strong>${sim.next_tier_goal.next_rate}% p.a.</strong>`;
       }
+    } else {
+      if (nextTierBanner) nextTierBanner.style.display = 'none';
     }
 
     if (tableBody && sim.tiers) {
       tableBody.innerHTML = sim.tiers.map((t) => `
-        <tr class="${t.is_active ? 'active-tier' : ''}">
-          <td>
-            <div style="font-weight: 600;">${t.label}</div>
-            ${t.is_active ? `<small style="font-size: 10px; color: #10b981; font-weight: 700;">(Tier Suku Bunga Aktif Saat Ini)</small>` : ''}
-          </td>
-          <td style="text-align: right; font-weight: 800; color: ${t.is_active ? '#34d399' : 'var(--text-muted)'};">
-            ${t.rate}
-          </td>
-        </tr>
+        <div class="sim-tier-row-card ${t.is_active ? 'active-tier-card' : ''}">
+          <div class="tier-card-left">
+            <span class="tier-card-badge">Tier ${t.tier_number}</span>
+            <div class="tier-card-label">${t.label}</div>
+          </div>
+          <div class="tier-card-right">
+            <div class="tier-card-rate">${t.rate}</div>
+            ${t.is_active ? `<span class="tier-active-pill"><i class="fa-solid fa-check"></i> Aktif</span>` : ''}
+          </div>
+        </div>
       `).join('');
     }
 
