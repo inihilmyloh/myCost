@@ -84,6 +84,7 @@ class BudgetController extends Controller
         $userId = $this->getUserId($request);
 
         $validator = Validator::make($request->all(), [
+            'id' => 'nullable|integer',
             'category' => 'required|string|max:100',
             'amount_limit' => 'required|numeric|min:1000',
             'month_year' => 'nullable|string|max:7',
@@ -95,16 +96,42 @@ class BudgetController extends Controller
 
         $monthYear = $request->month_year ?: date('Y-m');
 
-        $budget = Budget::updateOrCreate(
-            [
-                'user_id' => $userId,
-                'category' => $request->category,
-                'month_year' => $monthYear,
-            ],
-            [
-                'amount_limit' => (float)$request->amount_limit,
-            ]
-        );
+        $budget = null;
+        if ($request->filled('id')) {
+            $budget = Budget::forUser($userId)->find($request->id);
+        }
+
+        if ($budget) {
+            // If category changed, check if target category already has a budget for this month
+            $existingOther = Budget::forUser($userId)
+                ->where('month_year', $monthYear)
+                ->where('category', $request->category)
+                ->where('id', '!=', $budget->id)
+                ->first();
+
+            if ($existingOther) {
+                $existingOther->amount_limit = (float)$request->amount_limit;
+                $existingOther->save();
+                $budget->delete();
+                $budget = $existingOther;
+            } else {
+                $budget->category = $request->category;
+                $budget->amount_limit = (float)$request->amount_limit;
+                $budget->month_year = $monthYear;
+                $budget->save();
+            }
+        } else {
+            $budget = Budget::updateOrCreate(
+                [
+                    'user_id' => $userId,
+                    'category' => $request->category,
+                    'month_year' => $monthYear,
+                ],
+                [
+                    'amount_limit' => (float)$request->amount_limit,
+                ]
+            );
+        }
 
         return response()->json([
             'status' => 'success',

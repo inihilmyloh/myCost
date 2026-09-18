@@ -53,19 +53,35 @@ class AccountInterestService
             ];
         }
 
-        $today = Carbon::today('Asia/Jakarta');
-        $lastAccrued = $account->last_interest_accrued_date
-            ? Carbon::parse($account->last_interest_accrued_date, 'Asia/Jakarta')->startOfDay()
-            : Carbon::parse($account->created_at ?? now(), 'Asia/Jakarta')->startOfDay();
+        $now = Carbon::now('Asia/Jakarta');
+        $today = $now->copy()->startOfDay();
 
-        // If already accrued for today, return early
-        if ($lastAccrued->gte($today)) {
+        // Bank interest (like SeaBank) is officially paid out around 01:00 - 01:30 AM.
+        // If current local time is past 01:00 AM, today is eligible.
+        // If current local time is before 01:00 AM, interest only accrues up to yesterday.
+        $eligibleEndDate = ($now->hour >= 1) ? $today : $today->copy()->subDay();
+
+        $lastDateStr = null;
+        if ($account->last_interest_accrued_date) {
+            $lastDateStr = ($account->last_interest_accrued_date instanceof \DateTimeInterface)
+                ? $account->last_interest_accrued_date->format('Y-m-d')
+                : substr((string)$account->last_interest_accrued_date, 0, 10);
+        }
+
+        $lastAccrued = $lastDateStr
+            ? Carbon::createFromFormat('Y-m-d', $lastDateStr, 'Asia/Jakarta')->startOfDay()
+            : ($account->created_at
+                ? Carbon::parse($account->created_at)->setTimezone('Asia/Jakarta')->startOfDay()->subDay()
+                : $today->copy()->subDay());
+
+        // If already accrued up to eligible date, return early
+        if ($lastAccrued->gte($eligibleEndDate)) {
             return [
                 'account_id' => $account->id,
                 'name' => $account->name,
                 'days_accrued' => 0,
                 'total_interest' => 0,
-                'message' => 'Bunga hari ini sudah dihitung dan dicairkan.',
+                'message' => 'Bunga tabungan sudah mutakhir.',
             ];
         }
 
@@ -73,10 +89,11 @@ class AccountInterestService
         $daysProcessed = 0;
         $totalInterestCredited = 0;
         $createdTransactions = [];
+        $lastProcessedDate = $lastAccrued->toDateString();
 
         DB::beginTransaction();
         try {
-            while ($currentDate->lte($today)) {
+            while ($currentDate->lte($eligibleEndDate)) {
                 $dateString = $currentDate->toDateString();
                 $balance = (float)$account->balance;
 
@@ -92,10 +109,13 @@ class AccountInterestService
                     $taxRate = (float)($account->interest_tax_rate ?? 20.00);
                     $taxAmount = ($balance > $taxThreshold) ? ($grossInterest * ($taxRate / 100)) : 0.0;
 
-                    $netInterest = round($grossInterest - $taxAmount, 2);
+                    // Rounded to full Rupiah as done by Indonesian retail banks
+                    $netInterest = (float)round($grossInterest - $taxAmount);
 
                     if ($netInterest >= 1.0) {
-                        // Create interest income transaction
+                        // Create interest income transaction (matches real SeaBank time ~01:31 AM)
+                        $createdAtTime = Carbon::parse($dateString . ' 01:31:00', 'Asia/Jakarta');
+
                         $trans = Transaction::create([
                             'user_id' => $account->user_id,
                             'account_id' => $account->id,
@@ -106,7 +126,9 @@ class AccountInterestService
                             'admin_fee' => 0,
                             'category' => 'Bunga Tabungan',
                             'transaction_date' => $dateString,
-                            'notes' => "Bunga Harian {$account->name} ({$rate}% p.a.)",
+                            'notes' => 'Bunga',
+                            'created_at' => $createdAtTime,
+                            'updated_at' => $createdAtTime,
                         ]);
 
                         $account->balance += $netInterest;
@@ -115,11 +137,12 @@ class AccountInterestService
                     }
                 }
 
+                $lastProcessedDate = $dateString;
                 $daysProcessed++;
                 $currentDate->addDay();
             }
 
-            $account->last_interest_accrued_date = $today->toDateString();
+            $account->last_interest_accrued_date = $lastProcessedDate;
             $account->save();
 
             DB::commit();

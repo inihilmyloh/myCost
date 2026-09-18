@@ -74,6 +74,17 @@ class TransactionController extends Controller
     public function index(Request $request)
     {
         $userId = $this->getUserId($request);
+
+        // Auto-accrue daily interest & fees
+        if ($userId) {
+            try {
+                app(\App\Services\AccountInterestService::class)->accrueAllAccounts($userId);
+                app(\App\Services\AccountFeeService::class)->deductAllMonthlyAdminFees($userId);
+            } catch (\Exception $e) {
+                // Log & continue without breaking UI
+            }
+        }
+
         $query = Transaction::with(['items', 'account', 'destinationAccount'])->forUser($userId);
 
         // Filter by ID

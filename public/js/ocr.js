@@ -167,6 +167,7 @@ class ReceiptScanner {
   }
 
   // Pre-process image on canvas to boost OCR accuracy (Grayscale, High Contrast, Sharp Text)
+  // Pre-process image on canvas to boost OCR accuracy (Grayscale, High Contrast, Sharp Text)
   preprocessImage(imageElement, canvas) {
     const ctx = canvas.getContext('2d');
     const w = imageElement.naturalWidth || imageElement.width || 1200;
@@ -178,9 +179,9 @@ class ReceiptScanner {
     const imgData = ctx.getImageData(0, 0, w, h);
     const data = imgData.data;
 
-    // Convert to grayscale and enhance contrast for sharp receipt text
-    const contrast = 1.45;
-    const factor = (259 * (contrast * 255 + 255)) / (255 * (259 - contrast * 255));
+    // Convert to grayscale and enhance contrast properly (standard contrast level on -255 to 255 scale)
+    const contrastLevel = 32;
+    const factor = (259 * (contrastLevel + 255)) / (255 * (259 - contrastLevel));
 
     for (let i = 0; i < data.length; i += 4) {
       const avg = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
@@ -192,7 +193,7 @@ class ReceiptScanner {
     }
 
     ctx.putImageData(imgData, 0, 0);
-    return canvas.toDataURL('image/jpeg', 0.94);
+    return canvas.toDataURL('image/jpeg', 0.95);
   }
 
   // Main recognition method (aliases to processImage)
@@ -238,6 +239,7 @@ class ReceiptScanner {
         }
       );
 
+      console.log('OCR Raw Text Recognized:\n', result.data.text);
       const parsedData = this.parseReceiptText(result.data.text);
       return {
         success: true,
@@ -287,31 +289,48 @@ class ReceiptScanner {
     const rawLines = text.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
     const items = [];
     let totalDiscount = 0;
-    let serviceFee = 0;
-    let taxFee = 0;
     let grandTotal = 0;
     let subtotal = 0;
     let detectedDate = null;
     let detectedStore = '';
+    let storeBranch = '';
     let detectedPaymentAccount = '';
     let category = 'Belanja';
     let finishedItems = false;
     const candidates = [];
 
-    // 1. Detect store name & payment method from full text
     const fullText = text.toLowerCase();
-    if (/indomaret|indomarco|\bidm\b|kontak@indomaret/i.test(fullText)) {
+
+    // 1. Detect store brand & category from full text
+    const isIndomaret = /indomaret|indomarco|\bidm\b|kontak@indomaret|klikindomaret/i.test(fullText);
+    const isAlfamart = /alfamart|alfamidi|alfa\s*midi/i.test(fullText);
+    const isSuperindo = /superindo/i.test(fullText);
+
+    if (isIndomaret) {
       detectedStore = 'Indomaret';
       category = 'Belanja';
-    } else if (/alfamart|alfamidi|alfa\s*midi/i.test(fullText)) {
+    } else if (isAlfamart) {
       detectedStore = 'Alfamart';
       category = 'Belanja';
-    } else if (/superindo/i.test(fullText)) {
+    } else if (isSuperindo) {
       detectedStore = 'Superindo';
       category = 'Belanja';
     } else if (/hypermart|transmart|hero\b/i.test(fullText)) {
       detectedStore = 'Supermarket';
       category = 'Belanja';
+    }
+
+    // Detect branch / location in header lines
+    for (let i = 0; i < Math.min(rawLines.length, 4); i++) {
+      const line = rawLines[i].replace(/[^a-zA-Z0-9\s]/g, '').trim();
+      if (line.length >= 4 && !/jl\.|jalan|nota|faktur|struk|indomaret|alfamart|idm|no\b/i.test(line)) {
+        storeBranch = line.split(' ')[0]; // e.g. "JOGOKARYAN"
+        break;
+      }
+    }
+
+    if (detectedStore && storeBranch && !detectedStore.toLowerCase().includes(storeBranch.toLowerCase())) {
+      detectedStore = `${detectedStore} ${storeBranch.charAt(0).toUpperCase() + storeBranch.slice(1).toLowerCase()}`;
     }
 
     // Detect payment account from receipt
@@ -326,7 +345,7 @@ class ReceiptScanner {
     else if (/\bdana\b/i.test(fullText)) detectedPaymentAccount = 'DANA';
     else if (/\bqris\b/i.test(fullText)) detectedPaymentAccount = 'QRIS';
 
-    // 2. Identify Store from first lines if not detected
+    // 2. Fallback store name identification
     if (!detectedStore) {
       for (let i = 0; i < Math.min(rawLines.length, 6); i++) {
         const line = rawLines[i];
@@ -349,18 +368,54 @@ class ReceiptScanner {
     const isAddressLine = (str) => {
       return /^(?:jl\.|jln\b|jalan\b|kel\.|kelurahan\b|kec\.|kecamatan\b|kota\b|kab\.|kabupaten\b|gedongkiwo|mantrijeron|yogyakarta|bantul|jakarta|surabaya|semarang|bandung)/i.test(str)
         || /\b(?:kel\.|kelurahan|kec\.|kecamatan|kab\.|kabupaten)\s+[a-z]+/i.test(str)
-        || /,\s*(?:kota|kab|yogyakarta|jakarta|bantul|indonesia)/i.test(str);
+        || /,\s*(?:kota|kab|yogyakarta|jakarta|bantul|indonesia|\d{5})/i.test(str);
     };
 
     const isMetadataLine = (str) => {
-      return /^(?:nota\s*pembelian|faktur|invoice|struk|no\b|nomor\b|alamat|telepon|pemasok|cashier|kasir|pos\s*\d+|trx\s*id|customer|pax|dine\s*in|table|take\s*away|npwp|shift|counter|terminal)/i.test(str)
+      // Do not skip lines containing payment or amounts
+      if (/purchase|bayar|total|rp/i.test(str)) return false;
+      return /^(?:nota\s*pembelian|faktur|invoice|struk|alamat|telepon|pemasok|cashier|kasir|pos\s*\d+|trx\s*id|customer|pax|dine\s*in|table|take\s*away|npwp|shift|counter|terminal)/i.test(str)
         || /^\d{1,2}[.\/-]\d{1,2}[.\/-]\d{2,4}.*\/.*\/.*$/i.test(str)
-        || /^[=\-*_.\s#]{3,}$/.test(str);
+        || /^[=\-*_.\s#~]{3,}$/.test(str);
     };
 
     const isFooterKeyword = (str) => {
-      return /^(?:total\s*belanja|total\s*bayar|total\s*pembayaran|grand\s*total|\btotal\b|sub\s*total|subtotal|harga\s*jual|jumlah\s*harga|jumlah\s*pembelian|jumlah\s*total|non\s*tunai|tunai|cash|kembali|kembalian|anda\s*hemat|layanan\s*konsumen|kontak|telp|sms|seabank|mandiri|bca|bri|bni|gopay|ovo|dana|shopeepay|qris|ppn\b|dpp\b|dpp=|ppn=)/i.test(str);
+      const s = str.toLowerCase();
+      return /(?:total\s*belanja|tot\.?\s*belanja|total\s*bayar|tot\.?\s*bayar|grand\s*total|\btotal\b|sub\s*total|subtotal|harga\s*jual|jumlah\s*harga|non\s*tuna|tunai|cash|kembali|kembalian|anda\s*hemat|anda\s*hem|anda\s*tp|layanan\s*konsumen|kontak@|klikindomaret|seabank|mandiri|bca|bri|bni|gopay|ovo|dana|shopeepay|qris|ppn|dpp|purchase)/i.test(s)
+        || /^(?:dpp=|ppn=|trxid:)/i.test(s)
+        || /^(?:sms\/wa|telp\s*\d+|call\s*center)/i.test(s);
     };
+
+    // Smart Date Extraction with reasonable year bounds
+    const currentYear = new Date().getFullYear();
+    for (let idx = 0; idx < rawLines.length; idx++) {
+      const line = rawLines[idx];
+      if (!detectedDate) {
+        // Date Format: DD.MM.YY / DD.MM.YYYY / DD-MM-YYYY / DD/MM/YYYY
+        const dm3 = line.match(/\b(\d{1,2})[.\/-]\s*(\d{1,2})[.\/-]\s*(\d{2,4})\b/);
+        if (dm3) {
+          const d = parseInt(dm3[1]);
+          const m = parseInt(dm3[2]);
+          let yr = dm3[3];
+          if (d >= 1 && d <= 31 && m >= 1 && m <= 12) {
+            let fullYear = yr.length === 2 ? 2000 + parseInt(yr) : parseInt(yr);
+            if (fullYear < currentYear - 1 || fullYear > currentYear + 2) {
+              fullYear = currentYear;
+            }
+            detectedDate = `${fullYear}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+          }
+        }
+        // Date Format: 17 Sep 2026
+        const dm1 = line.match(/\b([0-9]{1,2})\s+([a-zA-Z]{3,10})\s+([0-9]{2,4})\b/i);
+        if (dm1) {
+          const monthNum = this.monthNameToNumber(dm1[2]);
+          let yr = dm1[3];
+          let fullYear = yr.length === 2 ? 2000 + parseInt(yr) : parseInt(yr);
+          if (fullYear < currentYear - 1 || fullYear > currentYear + 2) fullYear = currentYear;
+          detectedDate = `${fullYear}-${monthNum}-${String(dm1[1]).padStart(2, '0')}`;
+        }
+      }
+    }
 
     for (let idx = 0; idx < rawLines.length; idx++) {
       const rawLine = rawLines[idx];
@@ -370,49 +425,36 @@ class ReceiptScanner {
         .replace(/\s+/g, ' ')
         .trim();
 
-      // Clean leading OCR noise (e.g. "- ", "1 ", "• ", ". ")
-      const cleanedLine = line.replace(/^[-*•.,~1\s]+(?=(?:total|subtotal|harga\s*jual|non\s*tunai|tunai|cash|anda\s*hemat|ppn|layanan|kontak|sms|voucher|diskon))/i, '');
+      // Clean leading OCR noise
+      const cleanedLine = line.replace(/^[-*•.,~|:1\s]+(?=(?:total|subtotal|harga\s*jual|non\s*tunai|tunai|cash|anda\s*hemat|anda\s*tp|ppn|layanan|kontak|sms|voucher|diskon|dpp|purchase|qr))/i, '');
 
-      // Date detection
-      if (!detectedDate) {
-        const dm1 = line.match(/\b([0-9]{1,2})\s+([a-zA-Z]{3,10})\s+([0-9]{4})\b/i);
-        if (dm1) {
-          const monthNum = this.monthNameToNumber(dm1[2]);
-          detectedDate = `${dm1[3]}-${monthNum}-${String(dm1[1]).padStart(2, '0')}`;
-        }
-        const dm2 = line.match(/\b([a-zA-Z]{3,10})\s+([0-9]{1,2})\s+([0-9]{4})\b/i);
-        if (dm2) {
-          const monthNum = this.monthNameToNumber(dm2[1]);
-          detectedDate = `${dm2[3]}-${monthNum}-${String(dm2[2]).padStart(2, '0')}`;
-        }
-        const dm3 = line.match(/\b(\d{1,2})[.\/-]\s*(\d{1,2})[.\/-]\s*(\d{2,4})\b/);
-        if (dm3) {
-          let yr = dm3[3];
-          if (yr.length === 2) yr = '20' + yr;
-          detectedDate = `${yr}-${String(dm3[2]).padStart(2, '0')}-${String(dm3[1]).padStart(2, '0')}`;
+      // 1. VOUCHER & DISCOUNT DETECTION
+      // Handles: VOUCHER, YOUCHER, VOVCHER, DISKON, OISKON, DISXON, : (3,300), (3,300), -(3,300), etc.
+      let disc = 0;
+      const kwMatch = cleanedLine.match(/(?:voucher|youcher|vovcher|vducher|vouch|vouc\s*her|vouche[rpef]|diskon|oiskon|disxon|disk[o0]n|discount|disc|potongan|promo)\s*[:=]?\s*(?:[-−–]\s*)?(?:rp\.?\s*)?\(?\s*([0-9]{1,3}(?:[.,\s][0-9]{3})+|[0-9]{3,7})\s*\)?/i);
+      if (kwMatch) {
+        disc = this.cleanAmount(kwMatch[1]);
+      } else if (cleanedLine.includes('(') || cleanedLine.includes(':') || cleanedLine.includes('-')) {
+        const standaloneMatch = cleanedLine.match(/^[\s:•\-\*~_|\(\[{]*(?:[-−–]\s*)?(?:rp\.?\s*)?\(?\s*([0-9]{1,3}(?:[.,\s][0-9]{3})+|[0-9]{3,6})\s*\)?\s*$/i);
+        if (standaloneMatch) {
+          disc = this.cleanAmount(standaloneMatch[1]);
         }
       }
 
-      // Check for voucher/discount line attached to the previous item
-      // e.g. "VOUCHER : (5,600)" or "DISKON : (1,500)" or "PROMO -5000" or "(5,600)"
-      const voucherMatch = cleanedLine.match(/^(?:voucher|diskon|discount|potongan|promo|hemat)\s*[:=]?\s*(?:[-−–]\s*)?(?:rp\.?\s*)?\(?([0-9.,\s]+)\)?/i);
-      if (voucherMatch) {
-        const disc = this.cleanAmount(voucherMatch[1]);
-        if (disc > 0) {
-          totalDiscount += disc;
-          if (items.length > 0) {
-            const lastItem = items[items.length - 1];
-            lastItem.discount = (lastItem.discount || 0) + disc;
-            lastItem.total_price = Math.max(0, (lastItem.qty * lastItem.unit_price) - lastItem.discount);
-          }
+      if (disc > 0) {
+        totalDiscount += disc;
+        if (items.length > 0) {
+          const lastItem = items[items.length - 1];
+          lastItem.discount = (lastItem.discount || 0) + disc;
+          lastItem.total_price = Math.max(0, (lastItem.qty * lastItem.unit_price) - lastItem.discount);
         }
         continue;
       }
 
-      // Grand Total Detection (e.g. "TOTAL BELANJA : 71,700" or "TOTAL : 71.700")
-      const totalMatch = cleanedLine.match(/^(?:total\s*belanja|total\s*bayar|total\s*pembayaran|grand\s*total|\btotal\b)\s*[:=]?\s*(?:rp\.?\s*)?([0-9.,\s]+)/i);
+      // 2. GRAND TOTAL DETECTION
+      const totalMatch = cleanedLine.match(/(?:total\s*belanja|tot\.?\s*belanja|total\s*bayar|tot\.?\s*bayar|total\s*pembayaran|grand\s*total|\btotal\b)\s*[:=]?\s*(?:rp\.?\s*)?([0-9]{1,3}(?:[.,\s][0-9]{3})+|[0-9]{4,7})/i);
       if (totalMatch) {
-        const amt = this.cleanAmount(totalMatch[1]);
+        const amt = this.extractLineAmount(cleanedLine);
         if (amt > 0) {
           grandTotal = amt;
           candidates.push(amt);
@@ -421,47 +463,39 @@ class ReceiptScanner {
         continue;
       }
 
-      // Subtotal / Harga Jual Detection (e.g. "HARGA JUAL : 73,784" or "SUBTOTAL : 71,700")
+      // 3. ANDA HEMAT / TOTAL DISKON DETECTION
+      const hematMatch = cleanedLine.match(/(?:anda\s*hemat|anda\s*hem|anda\s*tp[a-z\s:]*|total\s*diskon|total\s*hemat)\s*[:=]?\s*(?:rp\.?\s*)?([0-9]{1,3}(?:[.,\s][0-9]{3})+|[0-9]{3,7})/i);
+      if (hematMatch) {
+        const discAmt = this.extractLineAmount(cleanedLine);
+        if (discAmt > 0) {
+          totalDiscount = Math.max(totalDiscount, discAmt);
+        }
+        finishedItems = true;
+        continue;
+      }
+
+      // 4. NON TUNAI / TUNAI / PAYMENT
+      const paymentMatch = cleanedLine.match(/(?:non\s*tuna[ik\s:a-z]*|tunai|cash|kembali|kembalian|qris|debit|kredit|seabank|purchase)\s*[:=]?\s*(?:rp\.?\s*)?([0-9]{1,3}(?:[.,\s][0-9]{3})+|[0-9]{4,7})/i);
+      if (paymentMatch) {
+        const amt = this.extractLineAmount(cleanedLine);
+        if (amt > 0) {
+          candidates.push(amt);
+          if (grandTotal === 0) grandTotal = amt;
+        }
+        finishedItems = true;
+        continue;
+      }
+
+      // 5. Subtotal / Jumlah Harga
       const subtotalMatch = cleanedLine.match(/^(?:jumlah\s*pembelian|harga\s*jual|sub\s*total|subtotal|jumlah\s*harga)\s*[:=]?\s*(?:rp\.?\s*)?([0-9.,\s]+)/i);
       if (subtotalMatch) {
         const amt = this.cleanAmount(subtotalMatch[1]);
-        if (amt > 0) {
-          subtotal = amt;
-          candidates.push(amt);
-        }
+        if (amt > 0) candidates.push(amt);
         finishedItems = true;
         continue;
       }
 
-      // Anda Hemat / Total Diskon
-      const hematMatch = cleanedLine.match(/^(?:anda\s*hemat|total\s*diskon|total\s*hemat)\s*[:=]?\s*(?:rp\.?\s*)?([0-9.,\s]+)/i);
-      if (hematMatch) {
-        const disc = this.cleanAmount(hematMatch[1]);
-        if (disc > 0 && totalDiscount === 0) {
-          totalDiscount = disc;
-        }
-        finishedItems = true;
-        continue;
-      }
-
-      // Payment methods in footer (e.g. "NON TUNAI : 71,700", "TUNAI : 100,000", "QRIS : 71,700")
-      const paymentMatch = cleanedLine.match(/^(?:non\s*tunai|tunai|cash|kembali|kembalian|qris|debit|kredit|card|kartu|seabank|bca|mandiri|bri|bni|gopay|shopeepay|ovo|dana)\s*[:=]?\s*(?:rp\.?\s*)?([0-9.,\s]+)?/i);
-      if (paymentMatch) {
-        if (paymentMatch[1]) {
-          const amt = this.cleanAmount(paymentMatch[1]);
-          if (amt > 0) candidates.push(amt);
-        }
-        finishedItems = true;
-        continue;
-      }
-
-      // PPN / DPP / Tax
-      if (/^ppn\b|^dpp\b|^pajak|^pb1/i.test(cleanedLine)) {
-        finishedItems = true;
-        continue;
-      }
-
-      // If footer reached, skip any further item parsing
+      // If footer reached or current line is footer keyword, stop item processing
       if (finishedItems || isFooterKeyword(cleanedLine)) {
         finishedItems = true;
         continue;
@@ -472,19 +506,27 @@ class ReceiptScanner {
         continue;
       }
 
-      // Clean item line from leading bullet or number
-      const itemLine = cleanedLine.replace(/^\d+[\.\)]\s*/, '').trim();
+      // Clean item line from leading prefix noise, preserving digits in product names (e.g. 10M, 3X180)
+      let itemLine = cleanedLine.replace(/^(?:\d+[\.\)]\s*|[|j\[:\-•*~]+\s*)/, '').trim();
 
       // Pattern 1: Indomaret / Alfamart / Minimarket
       // [NAMA BARANG] [QTY] [HARGA SATUAN] [TOTAL HARGA]
-      // e.g. "SO SOFT FLO BRS 700 1 19500 19,500"
-      // e.g. "B.DAILY BRIGHT 100 1 40900 40,900"
+      // e.g. "IDM F/T 2PLY 3X180'S 1 22800 22,800"
+      // e.g. "STELLA ALAT+REFILL25 1 35700 35,700"
       const indoMartPattern = itemLine.match(/^(.*?)\s+(\d{1,3})\s+([0-9]{1,3}(?:[.,][0-9]{3})*|[0-9]{3,7})\s+([0-9]{1,3}(?:[.,][0-9]{3})*|[0-9]{3,7})$/i);
       if (indoMartPattern) {
-        const name = indoMartPattern[1].trim();
-        const qty = parseInt(indoMartPattern[2]) || 1;
+        let name = indoMartPattern[1].trim().replace(/^[\W_]+|[\W_]+$/g, '');
+        let qty = parseInt(indoMartPattern[2]) || 1;
         const unitPrice = this.cleanAmount(indoMartPattern[3]);
         const lineTotal = this.cleanAmount(indoMartPattern[4]);
+
+        // Auto-correct misread qty (e.g. OCR reading '1' as '3' when unitPrice == lineTotal)
+        if (unitPrice > 0 && lineTotal > 0) {
+          const calculatedQty = Math.round(lineTotal / unitPrice);
+          if (calculatedQty > 0 && Math.abs((calculatedQty * unitPrice) - lineTotal) < 100) {
+            qty = calculatedQty;
+          }
+        }
 
         if (qty > 0 && unitPrice > 0 && name.length >= 2 && !isAddressLine(name) && !isFooterKeyword(name)) {
           items.push({
@@ -492,7 +534,7 @@ class ReceiptScanner {
             qty: qty,
             unit_price: unitPrice,
             discount: 0,
-            total_price: lineTotal > 0 ? lineTotal : (qty * unitPrice)
+            total_price: (qty * unitPrice)
           });
           candidates.push(lineTotal > 0 ? lineTotal : (qty * unitPrice));
           continue;
@@ -502,7 +544,7 @@ class ReceiptScanner {
       // Pattern 2: "Fried Kwetiau x1 Rp99.000" or "Fried Kwetiau 2x Rp99.000"
       const patternB = itemLine.match(/^(.*?)\s+(?:x|@)?\s*(\d+)(?:x)?\s+(?:rp\.?\s*)?([0-9]{1,3}(?:[.,][0-9]{3})+|[0-9]{3,7})$/i);
       if (patternB) {
-        const name = patternB[1].trim();
+        let name = patternB[1].trim().replace(/^[\W_]+|[\W_]+$/g, '');
         const qty = parseInt(patternB[2]) || 1;
         const price = this.cleanAmount(patternB[3]);
 
@@ -522,7 +564,7 @@ class ReceiptScanner {
       // Pattern 3: Single item with trailing price "[Name] [Price]"
       const patternC = itemLine.match(/^(.*?)\s+(?:rp\.?\s*)?([0-9]{1,3}(?:[.,][0-9]{3})+|[0-9]{3,7})$/i);
       if (patternC) {
-        const name = patternC[1].trim();
+        let name = patternC[1].trim().replace(/^[\W_]+|[\W_]+$/g, '');
         const price = this.cleanAmount(patternC[2]);
 
         if (price > 0 && name.length >= 2 && !isAddressLine(name) && !isFooterKeyword(name) && !/,\s*$/.test(name)) {
@@ -538,22 +580,31 @@ class ReceiptScanner {
       }
     }
 
-    // Final total calculation
-    if (grandTotal === 0 && subtotal > 0) {
-      grandTotal = Math.max(0, subtotal - totalDiscount + serviceFee + taxFee);
-    }
-    if (grandTotal === 0 && items.length > 0) {
-      grandTotal = Math.max(0, items.reduce((sum, it) => sum + (it.total_price || (it.qty * it.unit_price)), 0) - totalDiscount);
-    }
-    if (subtotal === 0 && items.length > 0) {
+    // Accurate Subtotal & Grand Total Calculation
+    if (items.length > 0) {
       subtotal = items.reduce((sum, it) => sum + (it.qty * it.unit_price), 0);
+    }
+
+    const sumItemDiscounts = items.reduce((sum, it) => sum + (it.discount || 0), 0);
+    if (totalDiscount > sumItemDiscounts && items.length > 0) {
+      // If footer ANDA HEMAT is larger than detected item discounts, reconcile remaining discount
+      const remainingDiscount = totalDiscount - sumItemDiscounts;
+      const itemsWithoutDisc = items.filter(it => it.discount === 0 && it.unit_price >= 5000);
+      if (itemsWithoutDisc.length === 1) {
+        itemsWithoutDisc[0].discount = remainingDiscount;
+        itemsWithoutDisc[0].total_price = Math.max(0, (itemsWithoutDisc[0].qty * itemsWithoutDisc[0].unit_price) - remainingDiscount);
+      }
+    }
+
+    if (grandTotal === 0 && subtotal > 0) {
+      grandTotal = Math.max(0, subtotal - totalDiscount);
     }
 
     const uniqueCandidates = [...new Set([grandTotal, subtotal, ...candidates])].filter((c) => c >= 500);
 
     return {
       amount: grandTotal,
-      subtotal: subtotal,
+      subtotal: subtotal || grandTotal,
       discount: totalDiscount,
       date: detectedDate || new Date().toISOString().split('T')[0],
       category: category,
@@ -597,6 +648,14 @@ class ReceiptScanner {
 
     const num = parseFloat(clean);
     return isNaN(num) ? 0 : Math.round(num);
+  }
+
+  // Extract maximum valid amount from line (handles noise like '1 65500 65,500' -> 65500)
+  extractLineAmount(str) {
+    if (!str) return 0;
+    const matches = str.match(/(?:rp\.?\s*)?([0-9]{1,3}(?:[.,][0-9]{3})+|[0-9]{3,7})/gi) || [];
+    const numbers = matches.map((m) => this.cleanAmount(m)).filter((n) => n >= 500);
+    return numbers.length > 0 ? Math.max(...numbers) : 0;
   }
 
   monthNameToNumber(monthStr) {

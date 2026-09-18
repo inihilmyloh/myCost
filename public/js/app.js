@@ -17,6 +17,7 @@ class MyCostApp {
     this.activeCategoryId = 'Makanan & Minuman';
     this.editingTransactionId = null;
     this.editingAccountId = null;
+    this.editingBudgetId = null;
     
     this.receiptImageUrl = null;
     this.receiptBase64 = null;
@@ -305,7 +306,7 @@ class MyCostApp {
     });
 
     document.getElementById('fabAddBtn')?.addEventListener('click', () => this.openTransactionModal());
-    document.getElementById('exportDataBtn')?.addEventListener('click', () => this.exportToCSV());
+    document.getElementById('exportDataBtn')?.addEventListener('click', () => this.openExportModal());
 
     document.querySelectorAll('.modal-overlay .close-btn').forEach((btn) => {
       btn.addEventListener('click', (e) => {
@@ -401,17 +402,17 @@ class MyCostApp {
     } catch (e) {
       this.categories = {
         pengeluaran: [
-          { name: 'Makanan & Minuman', icon: 'fa-utensils', color: '#10b981' },
-          { name: 'Belanja', icon: 'fa-bag-shopping', color: '#059669' },
-          { name: 'Transportasi', icon: 'fa-car', color: '#34d399' },
-          { name: 'Tagihan & Utilitas', icon: 'fa-receipt', color: '#ef4444' },
-          { name: 'Hiburan', icon: 'fa-gamepad', color: '#f59e0b' },
-          { name: 'Kesehatan', icon: 'fa-heart-pulse', color: '#14b8a6' },
+          { name: 'Makanan & Minuman', icon: 'fa-utensils', color: '#059669' },
+          { name: 'Belanja', icon: 'fa-bag-shopping', color: '#f59e0b' },
+          { name: 'Transportasi', icon: 'fa-car', color: '#10b981' },
+          { name: 'Tagihan & Utilitas', icon: 'fa-receipt', color: '#f43f5e' },
+          { name: 'Hiburan', icon: 'fa-gamepad', color: '#fb7185' },
+          { name: 'Kesehatan', icon: 'fa-heart-pulse', color: '#0d9488' },
           { name: 'Lainnya', icon: 'fa-circle-question', color: '#64748b' }
         ],
         pemasukan: [
-          { name: 'Gaji', icon: 'fa-money-bill-wave', color: '#10b981' },
-          { name: 'Freelance', icon: 'fa-laptop-code', color: '#059669' },
+          { name: 'Gaji', icon: 'fa-money-bill-wave', color: '#059669' },
+          { name: 'Freelance', icon: 'fa-laptop-code', color: '#10b981' },
           { name: 'Bisnis / Usaha', icon: 'fa-store', color: '#34d399' },
           { name: 'Lainnya', icon: 'fa-circle-question', color: '#64748b' }
         ]
@@ -935,14 +936,24 @@ class MyCostApp {
       else if (b.percentage > 75) barClass = 'warning';
 
       return `
-        <div class="budget-card">
+        <div class="budget-card" onclick="app.openEditBudgetModal(${b.id})" style="cursor: pointer;">
           <div class="budget-card-header">
             <div class="budget-cat-name">
               <i class="fa-solid fa-tag" style="color: var(--primary);"></i>
               ${b.category}
             </div>
-            <div class="budget-spent-txt">
-              <strong>Rp ${Number(b.total_spent).toLocaleString('id-ID')}</strong> / Rp ${Number(b.amount_limit).toLocaleString('id-ID')}
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div class="budget-spent-txt">
+                <strong>Rp ${Number(b.total_spent).toLocaleString('id-ID')}</strong> / Rp ${Number(b.amount_limit).toLocaleString('id-ID')}
+              </div>
+              <div class="budget-actions-wrap" onclick="event.stopPropagation()">
+                <button type="button" class="budget-action-btn" title="Edit Anggaran" onclick="app.openEditBudgetModal(${b.id})">
+                  <i class="fa-solid fa-pen-to-square"></i> Edit
+                </button>
+                <button type="button" class="budget-action-btn danger" title="Hapus Anggaran" onclick="app.handleDeleteBudget(${b.id})">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </div>
             </div>
           </div>
           <div class="budget-progress-track">
@@ -965,14 +976,102 @@ class MyCostApp {
   }
 
   openBudgetModal() {
+    this.editingBudgetId = null;
+    this.renderBudgetCategoryOptions();
+
+    const title = document.getElementById('budgetModalTitle');
+    if (title) title.textContent = 'Pasang Batas Anggaran';
+
+    const catSel = document.getElementById('budgetCategorySelect');
+    if (catSel) {
+      catSel.disabled = false;
+      if (catSel.options.length > 0) catSel.selectedIndex = 0;
+    }
+
+    const limitInp = document.getElementById('budgetLimit');
+    if (limitInp) limitInp.value = '';
+
+    const delBtn = document.getElementById('deleteBudgetBtn');
+    if (delBtn) delBtn.style.display = 'none';
+
     this.openModal('budgetModal');
+  }
+
+  openEditBudgetModal(id) {
+    const b = this.budgets.find((item) => item.id === id);
+    if (!b) return;
+
+    this.editingBudgetId = id;
+    this.renderBudgetCategoryOptions();
+
+    const title = document.getElementById('budgetModalTitle');
+    if (title) title.textContent = `Edit Anggaran "${b.category}"`;
+
+    const catSel = document.getElementById('budgetCategorySelect');
+    if (catSel) {
+      catSel.value = b.category;
+      catSel.disabled = false; // Category can be changed freely!
+      catSel.onchange = (e) => {
+        if (title) title.textContent = `Edit Anggaran "${e.target.value}"`;
+      };
+    }
+
+    const limitInp = document.getElementById('budgetLimit');
+    if (limitInp) limitInp.value = b.amount_limit;
+
+    const delBtn = document.getElementById('deleteBudgetBtn');
+    if (delBtn) delBtn.style.display = 'inline-block';
+
+    this.openModal('budgetModal');
+  }
+
+  async handleDeleteBudget(id = null) {
+    const targetId = id || this.editingBudgetId;
+    if (!targetId) return;
+
+    const b = this.budgets.find((item) => item.id === targetId);
+    const catName = b ? `kategori "${b.category}"` : 'ini';
+
+    if (!confirm(`Apakah Anda yakin ingin menghapus anggaran ${catName}?`)) return;
+
+    try {
+      const res = await fetch(this.getEndpoint(`budgets/${targetId}`), {
+        method: 'DELETE',
+        headers: this.getHeaders()
+      });
+      const json = await res.json();
+      if (json.status === 'success') {
+        this.showToast(json.message || 'Anggaran berhasil dihapus', 'success');
+        this.closeModal('budgetModal');
+        await this.fetchBudgets();
+      } else {
+        this.showToast(json.message || 'Gagal menghapus anggaran', 'error');
+      }
+    } catch (err) {
+      this.showToast('Gagal menghapus: ' + err.message, 'error');
+    }
   }
 
   async handleBudgetSubmit(e) {
     e.preventDefault();
+    const catSel = document.getElementById('budgetCategorySelect');
+    const category = catSel ? catSel.value : '';
+    const limitVal = parseFloat(document.getElementById('budgetLimit').value) || 0;
+
+    if (!category) {
+      this.showToast('Silakan pilih kategori pengeluaran', 'warning');
+      return;
+    }
+
+    if (limitVal < 1000) {
+      this.showToast('Batas anggaran minimal Rp 1.000', 'warning');
+      return;
+    }
+
     const payload = {
-      category: document.getElementById('budgetCategorySelect').value,
-      amount_limit: parseFloat(document.getElementById('budgetLimit').value) || 0,
+      id: this.editingBudgetId || null,
+      category: category,
+      amount_limit: limitVal,
       month_year: this.currentMonth
     };
 
@@ -1211,8 +1310,12 @@ class MyCostApp {
 
   getCategoryIcon(catName, type) {
     if (type === 'transfer') return 'fa-money-bill-transfer';
+    const lower = (catName || '').toLowerCase();
+    if (lower.includes('bunga')) return 'fa-sack-dollar';
+    if (lower.includes('kembali') || lower.includes('refund')) return 'fa-rotate-left';
+    if (lower.includes('invest')) return 'fa-chart-line';
     const list = this.categories[type] || [];
-    const found = list.find((c) => c.name.toLowerCase() === (catName || '').toLowerCase());
+    const found = list.find((c) => c.name.toLowerCase() === lower);
     return found ? found.icon : 'fa-receipt';
   }
 
@@ -1773,35 +1876,490 @@ class MyCostApp {
     }, 3500);
   }
 
-  exportToCSV() {
-    if (this.transactions.length === 0) {
-      this.showToast('Tidak ada data transaksi untuk diekspor', 'info');
-      return;
+  // ----------------------------------------------------
+  // EXPORT TO EXCEL MODAL & PROCESSOR
+  // ----------------------------------------------------
+  openExportModal() {
+    const [y, m] = this.currentMonth.split('-').map(Number);
+    const dateObj = new Date(y, m - 1, 1);
+    const monthName = dateObj.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+    
+    const labelEl = document.getElementById('exportCurrentMonthLabel');
+    if (labelEl) labelEl.innerText = monthName;
+
+    // Populate Year Dropdown dynamically
+    const yearSelect = document.getElementById('exportSelectYear');
+    if (yearSelect) {
+      yearSelect.innerHTML = '';
+      const currentY = new Date().getFullYear();
+      for (let yr = currentY - 3; yr <= currentY + 3; yr++) {
+        const opt = document.createElement('option');
+        opt.value = String(yr);
+        opt.innerText = String(yr);
+        if (yr === y) opt.selected = true;
+        yearSelect.appendChild(opt);
+      }
     }
 
-    const headers = ['ID', 'Tanggal', 'Tipe', 'Kategori', 'Rekening', 'Nominal (Rp)', 'Diskon (Rp)', 'Catatan'];
-    const rows = this.transactions.map((t) => [
-      t.id,
-      t.transaction_date,
-      t.type,
-      `"${t.category}"`,
-      `"${t.account ? t.account.name : ''}"`,
-      t.amount,
-      t.discount || 0,
-      `"${(t.notes || '').replace(/"/g, '""')}"`
-    ]);
+    const monthSelect = document.getElementById('exportSelectMonth');
+    if (monthSelect) {
+      monthSelect.value = String(m).padStart(2, '0');
+    }
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
+    this.syncCustomMonthInput();
+
+    const radioCurrent = document.querySelector('input[name="exportScope"][value="current"]');
+    if (radioCurrent) radioCurrent.checked = true;
+
+    this.onExportScopeChange('current');
+    this.openModal('exportModal');
+  }
+
+  syncCustomMonthInput() {
+    const m = document.getElementById('exportSelectMonth')?.value || '01';
+    const y = document.getElementById('exportSelectYear')?.value || new Date().getFullYear();
+    const customInput = document.getElementById('exportCustomMonthInput');
+    if (customInput) {
+      customInput.value = `${y}-${m}`;
+    }
+  }
+
+  onExportScopeChange(scope) {
+    document.querySelectorAll('.export-option-card').forEach((card) => card.classList.remove('active'));
+    
+    if (scope === 'current') {
+      document.getElementById('exportCardCurrent')?.classList.add('active');
+      const grp = document.getElementById('exportCustomMonthGroup');
+      if (grp) grp.style.display = 'none';
+    } else if (scope === 'all') {
+      document.getElementById('exportCardAll')?.classList.add('active');
+      const grp = document.getElementById('exportCustomMonthGroup');
+      if (grp) grp.style.display = 'none';
+    } else if (scope === 'custom') {
+      document.getElementById('exportCardCustom')?.classList.add('active');
+      const grp = document.getElementById('exportCustomMonthGroup');
+      if (grp) grp.style.display = 'block';
+      this.syncCustomMonthInput();
+    }
+  }
+
+  async executeExport() {
+    const scopeRadio = document.querySelector('input[name="exportScope"]:checked');
+    const scope = scopeRadio ? scopeRadio.value : 'current';
+    const btn = document.getElementById('btnProcessExport');
+    const originalBtnText = btn ? btn.innerHTML : '';
+
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyiapkan Data...';
+    }
+
+    try {
+      let exportTransactions = [];
+      let scopeLabel = '';
+      let fileSlug = '';
+
+      if (scope === 'current') {
+        const [y, m] = this.currentMonth.split('-').map(Number);
+        const dateObj = new Date(y, m - 1, 1);
+        const monthName = dateObj.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+        scopeLabel = `Bulan ${monthName}`;
+        fileSlug = `bulan_${this.currentMonth}`;
+
+        if (this.transactions && this.transactions.length > 0) {
+          exportTransactions = this.transactions;
+        } else {
+          const res = await fetch(this.getEndpoint(`transactions?month=${this.currentMonth}`), { headers: this.getHeaders() });
+          const json = await res.json();
+          exportTransactions = json.data || [];
+        }
+      } else if (scope === 'custom') {
+        const customVal = document.getElementById('exportCustomMonthInput')?.value;
+        if (!customVal) {
+          this.showToast('Silakan pilih bulan dan tahun terlebih dahulu', 'warning');
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalBtnText;
+          }
+          return;
+        }
+
+        const [cy, cm] = customVal.split('-').map(Number);
+        const dateObj = new Date(cy, cm - 1, 1);
+        const customMonthName = dateObj.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+        scopeLabel = `Bulan ${customMonthName}`;
+        fileSlug = `bulan_${customVal}`;
+
+        const res = await fetch(this.getEndpoint(`transactions?month=${customVal}`), { headers: this.getHeaders() });
+        const json = await res.json();
+        exportTransactions = json.data || [];
+      } else if (scope === 'all') {
+        scopeLabel = 'Semua Periode (Sepanjang Waktu)';
+        fileSlug = 'semua_data';
+
+        const res = await fetch(this.getEndpoint('transactions'), { headers: this.getHeaders() });
+        const json = await res.json();
+        exportTransactions = json.data || [];
+      }
+
+      if (!exportTransactions || exportTransactions.length === 0) {
+        this.showToast(`Tidak ada data transaksi untuk ${scopeLabel}`, 'info');
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = originalBtnText;
+        }
+        return;
+      }
+
+      this.generateExcelFile(exportTransactions, scopeLabel, fileSlug);
+      this.closeModal('exportModal');
+    } catch (err) {
+      console.error('Failed to export data:', err);
+      this.showToast('Gagal memuat data untuk ekspor', 'error');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = originalBtnText;
+      }
+    }
+  }
+
+  generateExcelFile(transactions, scopeLabel, fileSlug) {
+    const typeLabel = (type) => {
+      if (type === 'pengeluaran') return 'Pengeluaran';
+      if (type === 'pemasukan') return 'Pemasukan';
+      if (type === 'transfer') return 'Transfer Antar Rekening';
+      return type || '-';
+    };
+
+    const num = (v) => Number(v) || 0;
+
+    // ----------------------------------------------------
+    // Financial Aggregate Totals
+    // ----------------------------------------------------
+    let totalIncome = 0;
+    let totalExpense = 0;
+    let totalAdminFee = 0;
+    let totalDiscount = 0;
+    let totalTax = 0;
+    let totalItemCount = 0;
+
+    transactions.forEach((t) => {
+      const amt = num(t.amount);
+      const fee = num(t.admin_fee);
+      const disc = num(t.discount);
+      const tax = num(t.tax);
+
+      if (t.type === 'pemasukan') {
+        totalIncome += amt;
+      } else if (t.type === 'pengeluaran') {
+        totalExpense += amt;
+      }
+
+      totalAdminFee += fee;
+      totalDiscount += disc;
+      totalTax += tax;
+
+      if (Array.isArray(t.items)) {
+        totalItemCount += t.items.length;
+      }
+    });
+
+    const netCashflow = totalIncome - totalExpense;
+
+    if (typeof XLSX !== 'undefined') {
+      try {
+        const wb = XLSX.utils.book_new();
+
+        // ----------------------------------------------------
+        // SHEET 1: RINGKASAN & DAFTAR TRANSAKSI
+        // ----------------------------------------------------
+        const sheet1Data = [
+          ['LAPORAN KEUANGAN & TRANSAKSI - myCost'],
+          ['Periode Data:', scopeLabel],
+          ['Waktu Unduh:', new Date().toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' })],
+          [],
+          ['=== RINGKASAN EKSEKUTIF KEUANGAN ===', 'JUMLAH (RP)'],
+          ['Total Pemasukan (+)', totalIncome],
+          ['Total Pengeluaran (-)', totalExpense],
+          ['Arus Kas Bersih (Surplus / Defisit)', netCashflow],
+          ['Total Biaya Admin', totalAdminFee],
+          ['Total Diskon Diperoleh', totalDiscount],
+          ['Total Pajak', totalTax],
+          ['Total Transaksi Tercatat', transactions.length],
+          ['Total Item & Produk Terinci', totalItemCount],
+          [],
+          ['=== DAFTAR TRANSAKSI LENGKAP ==='],
+          [
+            'No',
+            'ID Transaksi',
+            'Tanggal',
+            'Tipe Transaksi',
+            'Kategori',
+            'Dari Rekening/Dompet',
+            'Rekening Tujuan',
+            'Jumlah Item',
+            'Rincian Produk/Item',
+            'Subtotal (Rp)',
+            'Diskon Transaksi (Rp)',
+            'Pajak (Rp)',
+            'Biaya Admin (Rp)',
+            'Total Akhir (Rp)',
+            'Catatan Transaksi'
+          ]
+        ];
+
+        transactions.forEach((t, idx) => {
+          const items = Array.isArray(t.items) ? t.items : [];
+          const itemsSummary = items.length > 0
+            ? items.map(it => `${it.item_name || 'Item'} (x${it.qty || 1} @ Rp ${(it.unit_price || 0).toLocaleString('id-ID')})`).join('; ')
+            : '-';
+
+          const sourceAcc = t.account ? t.account.name : '-';
+          const destAcc = t.destination_account ? t.destination_account.name : (t.destinationAccount ? t.destinationAccount.name : '-');
+
+          sheet1Data.push([
+            idx + 1,
+            t.id,
+            t.transaction_date || '-',
+            typeLabel(t.type),
+            t.category || '-',
+            sourceAcc,
+            destAcc,
+            items.length,
+            itemsSummary,
+            num(t.subtotal || t.amount),
+            num(t.discount),
+            num(t.tax),
+            num(t.admin_fee),
+            num(t.amount),
+            t.notes || ''
+          ]);
+        });
+
+        // ----------------------------------------------------
+        // SHEET 2: RINCIAN ITEM & PRODUK (1 Baris per Produk)
+        // ----------------------------------------------------
+        const sheet2Data = [
+          [
+            'No',
+            'ID Transaksi',
+            'Tanggal Transaksi',
+            'Tipe Transaksi',
+            'Kategori',
+            'Rekening',
+            'Nama Produk / Item',
+            'Jumlah (Qty)',
+            'Harga Satuan (Rp)',
+            'Diskon Item (Rp)',
+            'Total Harga Item (Rp)',
+            'Catatan Transaksi'
+          ]
+        ];
+
+        let itemCounter = 1;
+        transactions.forEach((t) => {
+          const items = Array.isArray(t.items) ? t.items : [];
+          const accName = t.account ? t.account.name : (t.destination_account ? t.destination_account.name : '-');
+
+          if (items.length > 0) {
+            items.forEach((it) => {
+              sheet2Data.push([
+                itemCounter++,
+                t.id,
+                t.transaction_date || '-',
+                typeLabel(t.type),
+                t.category || '-',
+                accName,
+                it.item_name || 'Item',
+                num(it.qty || 1),
+                num(it.unit_price),
+                num(it.discount),
+                num(it.total_price || (num(it.qty || 1) * num(it.unit_price) - num(it.discount))),
+                t.notes || ''
+              ]);
+            });
+          } else {
+            sheet2Data.push([
+              itemCounter++,
+              t.id,
+              t.transaction_date || '-',
+              typeLabel(t.type),
+              t.category || '-',
+              accName,
+              `[Non-Itemized: ${t.category || 'Transaksi'}]`,
+              1,
+              num(t.amount),
+              num(t.discount),
+              num(t.amount),
+              t.notes || ''
+            ]);
+          }
+        });
+
+        // ----------------------------------------------------
+        // SHEET 3: LAPORAN LENGKAP FLAT (Pivot & Analisis)
+        // ----------------------------------------------------
+        const sheet3Data = [
+          [
+            'No Transaksi',
+            'ID Transaksi',
+            'Tanggal',
+            'Tipe Transaksi',
+            'Kategori',
+            'Rekening Asal',
+            'Rekening Tujuan',
+            'Nama Produk / Item',
+            'Qty',
+            'Harga Satuan (Rp)',
+            'Diskon Item (Rp)',
+            'Total Harga Item (Rp)',
+            'Subtotal Transaksi (Rp)',
+            'Diskon Transaksi (Rp)',
+            'Pajak (Rp)',
+            'Biaya Admin (Rp)',
+            'Total Akhir Transaksi (Rp)',
+            'Catatan'
+          ]
+        ];
+
+        transactions.forEach((t, tIdx) => {
+          const items = Array.isArray(t.items) ? t.items : [];
+          const sourceAcc = t.account ? t.account.name : '-';
+          const destAcc = t.destination_account ? t.destination_account.name : (t.destinationAccount ? t.destinationAccount.name : '-');
+
+          if (items.length > 0) {
+            items.forEach((it, iIdx) => {
+              sheet3Data.push([
+                `${tIdx + 1}.${iIdx + 1}`,
+                t.id,
+                t.transaction_date || '-',
+                typeLabel(t.type),
+                t.category || '-',
+                sourceAcc,
+                destAcc,
+                it.item_name || 'Item',
+                num(it.qty || 1),
+                num(it.unit_price),
+                num(it.discount),
+                num(it.total_price || (num(it.qty || 1) * num(it.unit_price) - num(it.discount))),
+                num(t.subtotal || t.amount),
+                num(t.discount),
+                num(t.tax),
+                num(t.admin_fee),
+                num(t.amount),
+                t.notes || ''
+              ]);
+            });
+          } else {
+            sheet3Data.push([
+              `${tIdx + 1}`,
+              t.id,
+              t.transaction_date || '-',
+              typeLabel(t.type),
+              t.category || '-',
+              sourceAcc,
+              destAcc,
+              '-',
+              '-',
+              '-',
+              '-',
+              '-',
+              num(t.subtotal || t.amount),
+              num(t.discount),
+              num(t.tax),
+              num(t.admin_fee),
+              num(t.amount),
+              t.notes || ''
+            ]);
+          }
+        });
+
+        // Helper to adjust column widths dynamically
+        const autoFit = (aoa) => {
+          const widths = [];
+          aoa.forEach(row => {
+            row.forEach((cell, colIdx) => {
+              const str = cell !== null && cell !== undefined ? String(cell) : '';
+              const len = Math.min(Math.max(str.length + 3, 10), 60);
+              widths[colIdx] = Math.max(widths[colIdx] || 0, len);
+            });
+          });
+          return widths.map(w => ({ wch: w }));
+        };
+
+        const ws1 = XLSX.utils.aoa_to_sheet(sheet1Data);
+        ws1['!cols'] = autoFit(sheet1Data);
+        XLSX.utils.book_append_sheet(wb, ws1, 'Ringkasan & Transaksi');
+
+        const ws2 = XLSX.utils.aoa_to_sheet(sheet2Data);
+        ws2['!cols'] = autoFit(sheet2Data);
+        XLSX.utils.book_append_sheet(wb, ws2, 'Detail Produk & Item');
+
+        const ws3 = XLSX.utils.aoa_to_sheet(sheet3Data);
+        ws3['!cols'] = autoFit(sheet3Data);
+        XLSX.utils.book_append_sheet(wb, ws3, 'Laporan Lengkap Flat');
+
+        const filename = `mycost_laporan_${fileSlug}.xlsx`;
+        XLSX.writeFile(wb, filename);
+        this.showToast(`Laporan Excel (${scopeLabel}) berhasil diunduh!`, 'success');
+        return;
+      } catch (err) {
+        console.error('Error generating Excel file with SheetJS:', err);
+      }
+    }
+
+    // Fallback: Rich CSV Export
+    const csvHeaders = ['ID', 'Tanggal', 'Tipe', 'Kategori', 'Rekening', 'Rekening Tujuan', 'Item Produk', 'Subtotal', 'Diskon', 'Pajak', 'Admin Fee', 'Total Akhir', 'Catatan'];
+    const csvRows = transactions.map((t) => {
+      const items = Array.isArray(t.items) ? t.items : [];
+      const itemsStr = items.map(it => `${it.item_name} (x${it.qty} @${it.unit_price})`).join('; ');
+      return [
+        t.id,
+        t.transaction_date,
+        typeLabel(t.type),
+        `"${t.category || ''}"`,
+        `"${t.account ? t.account.name : ''}"`,
+        `"${t.destination_account ? t.destination_account.name : (t.destinationAccount ? t.destinationAccount.name : '')}"`,
+        `"${itemsStr.replace(/"/g, '""')}"`,
+        t.subtotal || t.amount,
+        t.discount || 0,
+        t.tax || 0,
+        t.admin_fee || 0,
+        t.amount,
+        `"${(t.notes || '').replace(/"/g, '""')}"`
+      ];
+    });
+
+    const csvContent = '\uFEFF' + [
+      `LAPORAN KEUANGAN - myCost (${scopeLabel})`,
+      `Total Pemasukan: Rp ${totalIncome.toLocaleString('id-ID')}`,
+      `Total Pengeluaran: Rp ${totalExpense.toLocaleString('id-ID')}`,
+      `Arus Kas Bersih: Rp ${netCashflow.toLocaleString('id-ID')}`,
+      '',
+      csvHeaders.join(','),
+      ...csvRows.map((r) => r.join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `mycost_transaksi_${this.currentMonth}.csv`);
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute('download', `mycost_laporan_${fileSlug}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    this.showToast('Data CSV berhasil diunduh!', 'success');
+    this.showToast(`Laporan CSV (${scopeLabel}) berhasil diunduh!`, 'success');
+  }
+
+  exportToExcel() {
+    this.openExportModal();
+  }
+
+  exportToCSV() {
+    this.openExportModal();
   }
 }
 
 // Global App Instance
 const app = new MyCostApp();
+

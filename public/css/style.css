@@ -1,43 +1,53 @@
-/* css/style.css - myCost Ultra-Premium Emerald & Forest Green Theme (No Blue/Purple/Pink) */
+/* css/style.css - myCost Modern Wealth Theme (Emerald, Gold, Coral, Matte Charcoal) */
 
 :root {
-  /* Brand Gradients & Colors - Emerald, Forest Green, Jade, Mint */
-  --primary-gradient: linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%);
-  --hero-gradient: linear-gradient(135deg, #062319 0%, #0d382b 50%, #064e3b 100%);
+  color-scheme: dark;
+  /* Brand Gradients & Accents (10% Accent) */
+  --primary: #059669;
+  --primary-hover: #047857;
+  --primary-light: #10b981;
+  --primary-gradient: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  --hero-gradient: linear-gradient(135deg, #072218 0%, #0d3527 50%, #054834 100%);
   --accent-gradient: linear-gradient(135deg, #059669 0%, #10b981 100%);
-  --income-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  --expense-gradient: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  --income-gradient: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  --expense-gradient: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+  --gold-gradient: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
   
-  /* Dark Mode Palette (Default) - Deep Obsidian Emerald */
-  --bg-main: #06110d;
-  --bg-surface: #0a1f18;
-  --bg-card: rgba(10, 31, 24, 0.85);
-  --bg-card-hover: rgba(16, 48, 38, 0.92);
-  --bg-glass: rgba(6, 17, 13, 0.92);
+  /* Status & Accents (10%) */
+  --income: #059669;
+  --income-light: #10b981;
+  --income-bg: rgba(5, 150, 105, 0.16);
+  --expense: #f43f5e;
+  --expense-light: #fb7185;
+  --expense-bg: rgba(244, 63, 94, 0.14);
+  --gold: #f59e0b;
+  --gold-light: #fbbf24;
+  --gold-bg: rgba(245, 158, 11, 0.14);
+  --warning: #f59e0b;
+  --info: #059669;
+  --accent: #10b981;
   
-  --border-color: rgba(52, 211, 153, 0.12);
-  --border-glow: rgba(16, 185, 129, 0.45);
+  /* 60% Dominant Neutral Background (Dark Mode - Rich Matte Obsidian Charcoal) */
+  --bg-main: #0b0f0e;
+  --bg-surface: #111815;
+  --bg-card: rgba(17, 24, 21, 0.88);
+  --bg-card-hover: rgba(23, 33, 29, 0.95);
+  --bg-glass: rgba(11, 15, 14, 0.92);
   
-  --text-primary: #f8fafc;
+  /* 30% Secondary Elements / Surfaces Borders */
+  --border-color: rgba(5, 150, 105, 0.16);
+  --border-subtle: rgba(255, 255, 255, 0.07);
+  --border-glow: rgba(5, 150, 105, 0.4);
+  
+  /* Typography - Comfortable, Eye-Restful Palette (No Glare, High Legibility) */
+  --text-primary: #f1f5f9;
   --text-secondary: #94a3b8;
   --text-muted: #64748b;
-  
-  --primary: #10b981;
-  --primary-hover: #059669;
-  --primary-light: #34d399;
-  
-  --income: #10b981;
-  --income-bg: rgba(16, 185, 129, 0.16);
-  --expense: #ef4444;
-  --expense-bg: rgba(239, 68, 68, 0.14);
-  --warning: #f59e0b;
-  --info: #10b981;
-  --accent: #34d399;
   
   --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.35);
   --shadow-md: 0 10px 30px -5px rgba(0, 0, 0, 0.5);
   --shadow-lg: 0 20px 45px -10px rgba(0, 0, 0, 0.7);
-  --shadow-glow: 0 0 25px rgba(16, 185, 129, 0.35);
+  --shadow-glow: 0 0 25px rgba(5, 150, 105, 0.3);
   --shadow-card: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
   
   --radius-sm: 10px;
@@ -49,26 +59,75 @@
 }
 
 [data-theme="light"] {
-  --bg-main: #f0fdf4;
+  color-scheme: light;
+  /* 60% Dominant Neutral Background (Light Mode - Soft Warm Calm Slate) */
+  --bg-main: #f6f8f7;
   --bg-surface: #ffffff;
-  --bg-card: rgba(255, 255, 255, 0.92);
-  --bg-card-hover: rgba(255, 255, 255, 1);
-  --bg-glass: rgba(255, 255, 255, 0.94);
+  --bg-card: rgba(255, 255, 255, 0.94);
+  --bg-card-hover: #ffffff;
+  --bg-glass: rgba(255, 255, 255, 0.95);
   
-  --border-color: rgba(5, 150, 105, 0.15);
-  --border-glow: rgba(16, 185, 129, 0.3);
+  --hero-gradient: linear-gradient(135deg, #064e3b 0%, #059669 50%, #047857 100%);
   
-  --text-primary: #064e3b;
-  --text-secondary: #047857;
+  /* 30% Secondary Elements Borders */
+  --border-color: rgba(5, 150, 105, 0.14);
+  --border-subtle: rgba(0, 0, 0, 0.06);
+  --border-glow: rgba(5, 150, 105, 0.25);
+  
+  /* Typography - Crisp Slate for eye comfort (No eye strain from saturated text) */
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
   --text-muted: #64748b;
   
-  --income-bg: rgba(16, 185, 129, 0.14);
-  --expense-bg: rgba(239, 68, 68, 0.12);
+  --income: #059669;
+  --income-bg: rgba(5, 150, 105, 0.12);
+  --expense: #e11d48;
+  --expense-bg: rgba(225, 29, 72, 0.1);
+  --gold: #d97706;
+  --gold-bg: rgba(217, 119, 6, 0.12);
   
-  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 10px 25px -5px rgba(0, 0, 0, 0.07);
-  --shadow-lg: 0 20px 40px -10px rgba(0, 0, 0, 0.1);
-  --shadow-card: 0 8px 30px 0 rgba(0, 0, 0, 0.06);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 8px 20px -4px rgba(0, 0, 0, 0.07);
+  --shadow-lg: 0 16px 36px -8px rgba(0, 0, 0, 0.1);
+  --shadow-card: 0 4px 20px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* ======================================================== */
+/* MODERN WEALTH GLOBAL CUSTOM SCROLLBARS                   */
+/* ======================================================== */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(5, 150, 105, 0.35) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(5, 150, 105, 0.35);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(5, 150, 105, 0.7);
+}
+
+[data-theme="light"] * {
+  scrollbar-color: rgba(5, 150, 105, 0.3) transparent;
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: rgba(5, 150, 105, 0.3);
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(5, 150, 105, 0.6);
 }
 
 /* Reset & Base Styles */
@@ -88,8 +147,8 @@ body {
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   background-color: var(--bg-main);
   background-image: 
-    radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.14) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(5, 150, 105, 0.1) 0px, transparent 50%);
+    radial-gradient(at 0% 0%, rgba(5, 150, 105, 0.08) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(5, 150, 105, 0.05) 0px, transparent 50%);
   background-attachment: fixed;
   color: var(--text-primary);
   min-height: 100vh;
@@ -920,6 +979,25 @@ h1, h2, h3, h4, .brand-font {
   transform: scale(0.95) translateY(10px);
   transition: all 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
   padding: 24px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(5, 150, 105, 0.35) transparent;
+}
+
+.modal-content::-webkit-scrollbar {
+  width: 5px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+  background: rgba(5, 150, 105, 0.35);
+  border-radius: 10px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(5, 150, 105, 0.65);
 }
 
 .modal-overlay.active .modal-content {
@@ -952,6 +1030,31 @@ h1, h2, h3, h4, .brand-font {
 .close-btn:hover {
   color: var(--text-primary);
   background: var(--bg-card-hover);
+}
+
+/* Export Option Cards */
+.export-option-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  background: var(--bg-card);
+  transition: var(--transition);
+  user-select: none;
+}
+
+.export-option-card:hover {
+  border-color: var(--primary-light);
+  background: var(--bg-card-hover);
+}
+
+.export-option-card.active {
+  border-color: var(--primary-light);
+  background: rgba(5, 150, 105, 0.1);
+  box-shadow: 0 0 0 1px var(--primary-light);
 }
 
 /* Auth Tabs */
@@ -1563,8 +1666,42 @@ h1, h2, h3, h4, .brand-font {
 .budget-footer {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   font-size: 12px;
   color: var(--text-secondary);
+}
+
+.budget-actions-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.budget-action-btn {
+  padding: 4px 9px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: var(--transition);
+}
+
+.budget-action-btn:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--primary-light);
+  color: var(--primary-light);
+}
+
+.budget-action-btn.danger:hover {
+  border-color: var(--expense);
+  color: var(--expense);
+  background: var(--expense-bg);
 }
 
 /* Piggy Bank Savings Cards */
@@ -2004,7 +2141,7 @@ h1, h2, h3, h4, .brand-font {
 .tier-row-remove-btn {
   background: none;
   border: none;
-  color: #ef4444;
+  color: var(--expense);
   font-size: 10px;
   font-weight: 700;
   cursor: pointer;
@@ -2053,8 +2190,8 @@ h1, h2, h3, h4, .brand-font {
   margin-top: 6px;
   font-size: 11px;
   font-weight: 600;
-  color: #fbbf24;
-  background: rgba(245, 158, 11, 0.1);
+  color: var(--gold, #f59e0b);
+  background: var(--gold-bg, rgba(245, 158, 11, 0.1));
   border: 1px solid rgba(245, 158, 11, 0.25);
   padding: 2px 8px;
   border-radius: 8px;
@@ -2064,8 +2201,8 @@ h1, h2, h3, h4, .brand-font {
 .account-interest-pill {
   margin-top: 14px;
   padding: 8px 12px;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(5, 150, 105, 0.06) 100%);
-  border: 1px solid rgba(16, 185, 129, 0.25);
+  background: linear-gradient(135deg, rgba(5, 150, 105, 0.12) 0%, rgba(5, 150, 105, 0.06) 100%);
+  border: 1px solid rgba(5, 150, 105, 0.25);
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -2083,14 +2220,14 @@ h1, h2, h3, h4, .brand-font {
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(52, 211, 153, 0.5), transparent);
+  background: linear-gradient(90deg, transparent, rgba(5, 150, 105, 0.4), transparent);
 }
 
 .account-interest-pill:hover {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.14) 100%);
-  border-color: rgba(52, 211, 153, 0.55);
+  background: linear-gradient(135deg, rgba(5, 150, 105, 0.2) 0%, rgba(5, 150, 105, 0.14) 100%);
+  border-color: rgba(5, 150, 105, 0.5);
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.2);
+  box-shadow: 0 4px 16px rgba(5, 150, 105, 0.2);
 }
 
 .interest-pill-info {
@@ -2101,21 +2238,21 @@ h1, h2, h3, h4, .brand-font {
 
 .interest-pill-icon {
   font-size: 11px;
-  color: #34d399;
-  filter: drop-shadow(0 0 4px rgba(52, 211, 153, 0.6));
+  color: var(--primary);
+  filter: drop-shadow(0 0 4px rgba(5, 150, 105, 0.5));
 }
 
 .interest-pill-rate {
   font-size: 13px;
   font-weight: 800;
-  color: #f8fafc;
+  color: var(--text-primary);
   letter-spacing: -0.2px;
 }
 
 .interest-pill-rate span {
   font-size: 10px;
   font-weight: 600;
-  color: #34d399;
+  color: var(--primary);
 }
 
 .interest-pill-badge {
@@ -2123,11 +2260,11 @@ h1, h2, h3, h4, .brand-font {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  background: rgba(16, 185, 129, 0.25);
-  color: #6ee7b7;
+  background: rgba(5, 150, 105, 0.2);
+  color: var(--primary);
   padding: 2px 6px;
   border-radius: 6px;
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  border: 1px solid rgba(5, 150, 105, 0.3);
 }
 
 .interest-pill-action {
@@ -2136,12 +2273,12 @@ h1, h2, h3, h4, .brand-font {
   gap: 4px;
   font-size: 11px;
   font-weight: 700;
-  color: #94a3b8;
+  color: var(--text-secondary);
   transition: color 0.2s ease, transform 0.2s ease;
 }
 
 .account-interest-pill:hover .interest-pill-action {
-  color: #34d399;
+  color: var(--primary);
   transform: translateX(2px);
 }
 
@@ -2155,26 +2292,27 @@ h1, h2, h3, h4, .brand-font {
 
 .sim-modal-custom {
   background: var(--bg-surface) !important;
-  border: 1px solid rgba(16, 185, 129, 0.25) !important;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 30px rgba(16, 185, 129, 0.15) !important;
+  border: 1px solid var(--border-color) !important;
+  box-shadow: var(--shadow-lg), 0 0 30px rgba(5, 150, 105, 0.12) !important;
 }
 
 .sim-modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: var(--bg-surface);
 }
 
 .sim-header-icon {
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: rgba(16, 185, 129, 0.15);
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  background: rgba(5, 150, 105, 0.15);
+  border: 1px solid rgba(5, 150, 105, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #34d399;
+  color: var(--primary-light);
   font-size: 15px;
 }
 
@@ -2183,7 +2321,7 @@ h1, h2, h3, h4, .brand-font {
   flex-direction: column;
   gap: 14px;
   scrollbar-width: thin;
-  scrollbar-color: rgba(16, 185, 129, 0.3) transparent;
+  scrollbar-color: rgba(5, 150, 105, 0.35) transparent;
 }
 
 .seabank-sim-body::-webkit-scrollbar {
@@ -2191,19 +2329,19 @@ h1, h2, h3, h4, .brand-font {
 }
 
 .seabank-sim-body::-webkit-scrollbar-thumb {
-  background: rgba(16, 185, 129, 0.3);
+  background: rgba(5, 150, 105, 0.35);
   border-radius: 10px;
 }
 
 .seabank-sim-body::-webkit-scrollbar-thumb:hover {
-  background: rgba(16, 185, 129, 0.6);
+  background: rgba(5, 150, 105, 0.65);
 }
 
 .sim-account-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
   padding: 10px 14px;
@@ -2226,12 +2364,13 @@ h1, h2, h3, h4, .brand-font {
 
 /* Hero Metric Card */
 .sim-hero-card {
-  background: linear-gradient(135deg, rgba(6, 78, 59, 0.35) 0%, rgba(10, 31, 24, 0.9) 100%);
-  border: 1px solid rgba(52, 211, 153, 0.3);
+  background: var(--hero-gradient);
+  border: 1px solid rgba(5, 150, 105, 0.3);
   border-radius: 16px;
   padding: 16px 18px;
   position: relative;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  color: #ffffff;
 }
 
 .sim-hero-top {
@@ -2244,7 +2383,7 @@ h1, h2, h3, h4, .brand-font {
 .sim-hero-lbl {
   font-size: 11px;
   font-weight: 600;
-  color: #94a3b8;
+  color: rgba(255, 255, 255, 0.7);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -2253,8 +2392,8 @@ h1, h2, h3, h4, .brand-font {
   font-size: 10px;
   font-weight: 700;
   color: #34d399;
-  background: rgba(16, 185, 129, 0.18);
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  background: rgba(16, 185, 129, 0.25);
+  border: 1px solid rgba(16, 185, 129, 0.4);
   padding: 2px 8px;
   border-radius: 10px;
   display: inline-flex;
@@ -2280,7 +2419,7 @@ h1, h2, h3, h4, .brand-font {
 
 .sim-hero-sub {
   font-size: 11px;
-  color: #94a3b8;
+  color: rgba(255, 255, 255, 0.65);
 }
 
 .sim-stats-subgrid {
@@ -2290,13 +2429,13 @@ h1, h2, h3, h4, .brand-font {
   background: rgba(0, 0, 0, 0.25);
   border-radius: 10px;
   padding: 10px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .sim-stat-lbl {
   display: block;
   font-size: 10px;
-  color: #64748b;
+  color: rgba(255, 255, 255, 0.55);
   font-weight: 600;
   margin-bottom: 2px;
 }
@@ -2304,7 +2443,7 @@ h1, h2, h3, h4, .brand-font {
 .sim-stat-val {
   font-size: 14px;
   font-weight: 800;
-  color: #f8fafc;
+  color: #ffffff;
 }
 
 /* Next Tier Banner */
@@ -2326,19 +2465,19 @@ h1, h2, h3, h4, .brand-font {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #f59e0b;
+  color: var(--gold, #f59e0b);
   font-size: 12px;
   flex-shrink: 0;
 }
 
 .sim-banner-text {
   font-size: 11px;
-  color: #fde68a;
+  color: var(--text-secondary);
   line-height: 1.4;
 }
 
 .sim-banner-text strong {
-  color: #fbbf24;
+  color: var(--gold, #f59e0b);
 }
 
 /* Tier Table / Cards List */
@@ -2379,7 +2518,7 @@ h1, h2, h3, h4, .brand-font {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 10px;
   padding: 10px 12px;
@@ -2387,9 +2526,9 @@ h1, h2, h3, h4, .brand-font {
 }
 
 .sim-tier-row-card.active-tier-card {
-  background: rgba(16, 185, 129, 0.1);
-  border-color: rgba(52, 211, 153, 0.45);
-  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.1);
+  background: rgba(5, 150, 105, 0.1);
+  border-color: rgba(5, 150, 105, 0.4);
+  box-shadow: 0 2px 10px rgba(5, 150, 105, 0.1);
 }
 
 .tier-card-left {
@@ -2406,7 +2545,7 @@ h1, h2, h3, h4, .brand-font {
 }
 
 .active-tier-card .tier-card-badge {
-  color: var(--primary-light);
+  color: var(--primary);
 }
 
 .tier-card-label {
@@ -2429,17 +2568,17 @@ h1, h2, h3, h4, .brand-font {
 }
 
 .active-tier-card .tier-card-rate {
-  color: #34d399;
+  color: var(--primary);
 }
 
 .tier-active-pill {
   font-size: 9px;
   font-weight: 700;
-  background: rgba(16, 185, 129, 0.2);
-  color: #34d399;
+  background: rgba(5, 150, 105, 0.18);
+  color: var(--primary);
   padding: 1px 6px;
   border-radius: 6px;
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  border: 1px solid rgba(5, 150, 105, 0.3);
   display: inline-flex;
   align-items: center;
   gap: 3px;
@@ -2467,7 +2606,7 @@ h1, h2, h3, h4, .brand-font {
 }
 
 .sim-mini-box {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 10px;
   padding: 8px 6px;
@@ -2476,8 +2615,8 @@ h1, h2, h3, h4, .brand-font {
 }
 
 .sim-mini-box:hover {
-  border-color: rgba(16, 185, 129, 0.35);
-  background: rgba(16, 185, 129, 0.06);
+  border-color: rgba(5, 150, 105, 0.35);
+  background: rgba(5, 150, 105, 0.06);
 }
 
 .sim-mini-lbl {
@@ -2490,7 +2629,7 @@ h1, h2, h3, h4, .brand-font {
 .sim-mini-val {
   font-size: 13px;
   font-weight: 800;
-  color: #34d399;
+  color: var(--primary);
 }
 
 /* ======================================================== */

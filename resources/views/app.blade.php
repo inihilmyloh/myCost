@@ -25,7 +25,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
   <!-- Core Styles -->
-  <link rel="stylesheet" href="{{ asset('css/style.css') }}?v=5.0">
+  <link rel="stylesheet" href="{{ asset('css/style.css') }}?v=6.0">
 </head>
 
 <body>
@@ -56,9 +56,9 @@
           <span class="status-dot"></span> Online
         </div>
 
-        <!-- CSV Export -->
-        <button id="exportDataBtn" class="icon-btn" title="Ekspor Data ke CSV">
-          <i class="fa-solid fa-file-arrow-down"></i>
+        <!-- Excel Export -->
+        <button id="exportDataBtn" class="icon-btn" title="Ekspor Data ke Excel (.xlsx)" onclick="app.openExportModal()">
+          <i class="fa-solid fa-file-excel"></i>
         </button>
 
         <!-- Dark/Light Theme Toggle -->
@@ -653,11 +653,12 @@
   <div id="budgetModal" class="modal-overlay">
     <div class="modal-content">
       <div class="modal-header">
-        <h3 class="modal-title">Pasang Batas Anggaran</h3>
+        <h3 id="budgetModalTitle" class="modal-title">Pasang Batas Anggaran</h3>
         <button class="close-btn"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
       <form id="budgetForm">
+        <input type="hidden" id="budgetId">
         <div class="form-group">
           <label class="form-label">Kategori Pengeluaran</label>
           <select id="budgetCategorySelect" class="form-control" required></select>
@@ -672,9 +673,14 @@
           </div>
         </div>
 
-        <button type="submit" class="btn-primary" style="margin-top: 16px;">
-          <i class="fa-solid fa-check"></i> Simpan Anggaran
-        </button>
+        <div style="display: flex; gap: 10px; margin-top: 16px;">
+          <button type="button" id="deleteBudgetBtn" class="btn-secondary" style="display: none; color: var(--expense); border-color: rgba(244, 63, 94, 0.3); width: auto; padding: 12px 18px;" onclick="app.handleDeleteBudget()">
+            <i class="fa-solid fa-trash"></i> Hapus
+          </button>
+          <button type="submit" id="submitBudgetBtn" class="btn-primary" style="flex: 1;">
+            <i class="fa-solid fa-check"></i> Simpan Anggaran
+          </button>
+        </div>
       </form>
     </div>
   </div>
@@ -899,7 +905,7 @@
   <div id="interestSimulationModal" class="modal-overlay">
     <div class="modal-content sim-modal-custom" style="max-width: 500px; padding: 0; overflow: hidden; border-radius: 20px;">
       <!-- Header -->
-      <div class="modal-header sim-modal-header" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); background: rgba(10, 31, 24, 0.95);">
+      <div class="modal-header sim-modal-header" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); background: var(--bg-surface);">
         <div style="display: flex; align-items: center; gap: 10px;">
           <div class="sim-header-icon">
             <i class="fa-solid fa-chart-line"></i>
@@ -1006,14 +1012,111 @@
     </div>
   </div>
 
+  <!-- Modal 9: Export Data ke Excel (Pilihan Periode & Rincian) -->
+  <div id="exportModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 480px;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 38px; height: 38px; border-radius: var(--radius-sm); background: rgba(5, 150, 105, 0.15); color: var(--primary-light); display: flex; align-items: center; justify-content: center; font-size: 18px;">
+            <i class="fa-solid fa-file-excel"></i>
+          </div>
+          <div>
+            <h3 class="modal-title" style="font-size: 16px; margin: 0;">Ekspor Data ke Excel</h3>
+            <span style="font-size: 11px; color: var(--text-muted);">Pilih cakupan periode & laporan yang ingin diunduh</span>
+          </div>
+        </div>
+        <button class="close-btn" onclick="app.closeModal('exportModal')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div style="padding-top: 10px;">
+        <!-- Option Cards -->
+        <div class="export-options-grid" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px;">
+          <label class="export-option-card active" id="exportCardCurrent">
+            <input type="radio" name="exportScope" value="current" checked onchange="app.onExportScopeChange('current')" style="accent-color: var(--primary-light); width: 16px; height: 16px; cursor: pointer;">
+            <div style="flex: 1;">
+              <div style="font-size: 13px; font-weight: 700; color: var(--text-primary);">Bulan Ini (<span id="exportCurrentMonthLabel">...</span>)</div>
+              <div style="font-size: 11px; color: var(--text-muted);">Hanya ekspor transaksi pada bulan yang sedang aktif</div>
+            </div>
+            <i class="fa-regular fa-calendar-check" style="color: var(--primary-light); font-size: 18px;"></i>
+          </label>
+
+          <label class="export-option-card" id="exportCardAll">
+            <input type="radio" name="exportScope" value="all" onchange="app.onExportScopeChange('all')" style="accent-color: var(--primary-light); width: 16px; height: 16px; cursor: pointer;">
+            <div style="flex: 1;">
+              <div style="font-size: 13px; font-weight: 700; color: var(--text-primary);">Semua Data (Semua Bulan / Sepanjang Waktu)</div>
+              <div style="font-size: 11px; color: var(--text-muted);">Ekspor seluruh riwayat transaksi yang pernah tercatat</div>
+            </div>
+            <i class="fa-solid fa-database" style="color: var(--accent-gold); font-size: 18px;"></i>
+          </label>
+
+          <label class="export-option-card" id="exportCardCustom">
+            <input type="radio" name="exportScope" value="custom" onchange="app.onExportScopeChange('custom')" style="accent-color: var(--primary-light); width: 16px; height: 16px; cursor: pointer;">
+            <div style="flex: 1;">
+              <div style="font-size: 13px; font-weight: 700; color: var(--text-primary);">Pilih Bulan Tertentu</div>
+              <div style="font-size: 11px; color: var(--text-muted);">Tentukan bulan dan tahun spesifik yang diinginkan</div>
+            </div>
+            <i class="fa-regular fa-calendar-days" style="color: var(--primary-light); font-size: 18px;"></i>
+          </label>
+        </div>
+
+        <!-- Custom Month & Year Pickers (shown only when 'custom' selected) -->
+        <div id="exportCustomMonthGroup" class="form-group" style="display: none; margin-bottom: 14px; background: var(--bg-card); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+          <label class="form-label" style="font-size: 12px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; color: var(--text-primary); font-weight: 700;">
+            <i class="fa-regular fa-calendar" style="color: var(--primary-light);"></i> Tentukan Bulan & Tahun:
+          </label>
+          <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 8px;">
+            <select id="exportSelectMonth" class="form-control" onchange="app.syncCustomMonthInput()" style="font-weight: 700; font-size: 13.5px; cursor: pointer;">
+              <option value="01">Januari</option>
+              <option value="02">Februari</option>
+              <option value="03">Maret</option>
+              <option value="04">April</option>
+              <option value="05">Mei</option>
+              <option value="06">Juni</option>
+              <option value="07">Juli</option>
+              <option value="08">Agustus</option>
+              <option value="09">September</option>
+              <option value="10">Oktober</option>
+              <option value="11">November</option>
+              <option value="12">Desember</option>
+            </select>
+            <select id="exportSelectYear" class="form-control" onchange="app.syncCustomMonthInput()" style="font-weight: 700; font-size: 13.5px; cursor: pointer;">
+              <!-- Dynamic years -->
+            </select>
+          </div>
+          <input type="hidden" id="exportCustomMonthInput">
+        </div>
+
+        <!-- Detail summary included in Excel badge -->
+        <div style="background: rgba(5, 150, 105, 0.12); border: 1px solid rgba(5, 150, 105, 0.35); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 18px; font-size: 12px; color: var(--text-primary); display: flex; gap: 10px; align-items: flex-start;">
+          <i class="fa-solid fa-circle-check" style="color: var(--primary-light); font-size: 17px; margin-top: 2px;"></i>
+          <div>
+            <div style="font-weight: 800; color: var(--text-primary); margin-bottom: 3px;">Rincian Lengkap Termasuk di Sheet 1, 2, & 3:</div>
+            <div style="color: var(--text-secondary); line-height: 1.4;">Total Pemasukan, Total Pengeluaran, Saldo Bersih, Biaya Admin, serta Detail Setiap Produk/Barang yang dibeli.</div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div style="display: flex; gap: 10px;">
+          <button type="button" class="btn-secondary" style="flex: 1;" onclick="app.closeModal('exportModal')">
+            Batal
+          </button>
+          <button type="button" id="btnProcessExport" class="btn-primary" style="flex: 2;" onclick="app.executeExport()">
+            <i class="fa-solid fa-file-arrow-down"></i> Unduh File Excel (.xlsx)
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
   <!-- Application Scripts -->
-  <script src="{{ asset('js/charts.js') }}?v=5.0"></script>
-  <script src="{{ asset('js/ocr.js') }}?v=5.0"></script>
-  <script src="{{ asset('js/app.js') }}?v=5.0"></script>
+  <script src="{{ asset('js/charts.js') }}?v=5.7"></script>
+  <script src="{{ asset('js/ocr.js') }}?v=5.7"></script>
+  <script src="{{ asset('js/app.js') }}?v=5.7"></script>
 
 </body>
 

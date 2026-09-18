@@ -1,5 +1,5 @@
 // Service Worker for myCost PWA - Local Firefly III Mode
-const CACHE_NAME = 'mycost-v4.0.0-local';
+const CACHE_NAME = 'mycost-v4.1.1-local';
 
 const ASSETS_TO_CACHE = [
   './',

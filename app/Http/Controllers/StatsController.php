@@ -31,6 +31,17 @@ class StatsController extends Controller
     public function index(Request $request)
     {
         $userId = $this->getUserId($request);
+
+        // Auto-accrue daily interest & fees
+        if ($userId) {
+            try {
+                app(\App\Services\AccountInterestService::class)->accrueAllAccounts($userId);
+                app(\App\Services\AccountFeeService::class)->deductAllMonthlyAdminFees($userId);
+            } catch (\Exception $e) {
+                // Log & continue without breaking UI
+            }
+        }
+
         $month = $request->input('month', Carbon::now()->format('Y-m'));
 
         // 1. Accounts & Total Net Worth

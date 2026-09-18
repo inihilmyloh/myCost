@@ -5,19 +5,19 @@ class FinancialCharts {
     this.categoryChart = null;
     this.trendChart = null;
     this.categoryColors = [
-      '#10b981', '#059669', '#34d399', '#047857', 
-      '#6ee7b7', '#15803d', '#84cc16', '#f59e0b', '#065f46', '#64748b'
+      '#059669', '#f59e0b', '#10b981', '#f43f5e', 
+      '#34d399', '#d97706', '#047857', '#fb7185', '#0d9488', '#64748b'
     ];
   }
 
   getThemeColors() {
     const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
     return {
-      textColor: isDark ? '#94a3b8' : '#475569',
+      textColor: isDark ? '#94a3b8' : '#334155',
       gridColor: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)',
-      tooltipBg: isDark ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.95)',
-      tooltipText: isDark ? '#f8fafc' : '#0f172a',
-      borderColor: isDark ? '#1e293b' : '#e2e8f0'
+      tooltipBg: isDark ? 'rgba(17, 24, 21, 0.96)' : 'rgba(255, 255, 255, 0.96)',
+      tooltipText: isDark ? '#f1f5f9' : '#0f172a',
+      borderColor: isDark ? 'rgba(5, 150, 105, 0.2)' : 'rgba(5, 150, 105, 0.15)'
     };
   }
 
@@ -133,8 +133,8 @@ class FinancialCharts {
           {
             label: 'Pemasukan',
             data: incomeData,
-            backgroundColor: 'rgba(16, 185, 129, 0.85)',
-            borderColor: '#10b981',
+            backgroundColor: 'rgba(5, 150, 105, 0.85)',
+            borderColor: '#059669',
             borderRadius: 6,
             borderWidth: 1,
             maxBarThickness: 28
@@ -142,8 +142,8 @@ class FinancialCharts {
           {
             label: 'Pengeluaran',
             data: expenseData,
-            backgroundColor: 'rgba(239, 68, 68, 0.85)',
-            borderColor: '#ef4444',
+            backgroundColor: 'rgba(244, 63, 94, 0.85)',
+            borderColor: '#f43f5e',
             borderRadius: 6,
             borderWidth: 1,
             maxBarThickness: 28
